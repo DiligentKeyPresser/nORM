@@ -4,9 +4,6 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-
-
 
 #warning сунуть как можно больше проверок в дебаг
 #warning материализация в список - вероятно проблема. фикс должен коснуться как материализации, так и метода выполнения в контексте бд
@@ -19,8 +16,8 @@ namespace nORM
          
     public abstract class DatabaseContext: IDatabase
     {
-        public string Host { get; private set; }
-        public string Database { get; private set; }
+        public string Host { get; }
+        public string Database { get; }
 
         private readonly string ConnectionString;
 
@@ -83,7 +80,7 @@ namespace nORM
 
         static RowProvider() { Singleton = new RowProvider(); }
 
-        public static RowProvider Singleton { get; private set; }
+        public static RowProvider Singleton { get; }
 
         #endregion
 
@@ -109,22 +106,19 @@ namespace nORM
 #endif 
             var TargetObject = const_arg_0.Value as RowSource;
 
-            var Query = TargetObject as Query<TElement>;
-            if (Query == null)
-            {
-#warning typeof x2
-                var Constructor = typeof(Query<TElement>).GetConstructor(BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, null, new Type[] { typeof(Table<TElement>) }, null);
-                Query = (Query<TElement>)Constructor.Invoke(new object[] { const_arg_0.Value });
-            }
-
 #warning магическая константа
+#warning так можно обработать только один из Where
             if (mc_expr.Method.Name == "Where")
             {
-                if (!Query.AddWhereCondition(mc_expr.Arguments[1])) goto failed_to_translate;
+#if DEBUG
+                if (TargetObject.GetType().GetGenericArguments()[0] != typeof(TElement)) throw new InvalidProgramException("Where query method must be applyed to RowSource of the same type");
+#endif 
+                var where_target = TargetObject as RowSource<TElement>;
+                var new_query = where_target.MakeWhere(mc_expr.Arguments[1]);
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
             }
             else goto failed_to_translate;
-
-            return Query;
 
         failed_to_translate: 
             // попадаем сюда если пришедший метод не транслируется в SQL
@@ -174,12 +168,22 @@ namespace nORM
             // рассматриваем различные скалярные штуки
 
 #warning магическая константа
+#warning это только один каунт из возможных
             if (mc_expr.Method.Name == "Count")
             {
-                var SqlQuery = TargetObject.GetSQL();
-                SqlQuery.Count();
+                var select_list_length = TargetObject.SelectListLength;
+                var select_list_start = TargetObject.SelectListStart;
+                var select_list_end = select_list_start + select_list_length;
 
-#warning печален ли избыточный каст?
+                var old_sql_query = TargetObject.GetSQLArray();
+                var new_sql_query = new string[old_sql_query.Length + 3 - select_list_length];
+
+
+                Array.Copy(old_sql_query, new_sql_query, select_list_start);
+                new_sql_query[select_list_start] = "COUNT(*) ";
+                Array.Copy(old_sql_query, select_list_end, new_sql_query, select_list_start + 1, old_sql_query.Length - select_list_end);
+
+                var SqlQuery = string.Concat(new_sql_query);
                 return TargetObject.Context.ExecuteScalar(SqlQuery);
             }
             else goto failed_to_translate;
@@ -210,15 +214,18 @@ namespace nORM
     }
 
     /// <summary>
-    /// Служебный класс, способный представлять любой запрос к базе данных, возвращающий таблицу
+    /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
     /// </summary>
     public abstract class RowSource
     {
         // Интерфейс не подходит изза ограничения на область видимости его членов
 
-        abstract internal string GetSQL();
+#warning А теперь кажется что проще хранить запрос непосредственно в виде строки
+        private string sql_query = null;
+        internal string GetSQL() => sql_query ?? (sql_query = string.Concat(GetSQLArray()));
 
-        abstract internal string GetSQLArray();
+        protected string[] sql_array;
+        internal string[] GetSQLArray() => sql_array;
 
         internal RowSource(DatabaseContext ConnectionContext) 
         {
@@ -226,7 +233,10 @@ namespace nORM
         }
 
         // Обращение к данному свойству производится довольно часто, стоит сохранить ссылку, а не ходить в провайдер
-        internal DatabaseContext Context { get; private set; }
+        internal DatabaseContext Context { get; }
+
+        abstract internal protected int SelectListStart { get; }
+        abstract internal protected int SelectListLength { get; }
     }
 
     /// <summary>
@@ -241,7 +251,7 @@ namespace nORM
         /// Тип строк, которые можно получить из данного объекта
         /// </summary>
         public Type ElementType { get { return contract_type; } }
-        public Expression Expression { get; private set; }
+        public Expression Expression { get; }
         public IQueryProvider Provider { get { return RowProvider.Singleton; } }
         public RowSource(DatabaseContext ConnectionContext) : base(ConnectionContext)
         {
@@ -249,37 +259,54 @@ namespace nORM
         }
         public abstract IEnumerator<RowContract> GetEnumerator();
         IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
+
+        internal abstract Query<RowContract> MakeWhere(Expression Condition);
+        internal protected int NextWhereClausePosition { get; protected set; }
+        internal protected bool HasWhereClause { get; protected set; }
     }
 
-#warning Запрос должен быть немутабельным!!! создавать новый объект на каждый вызов метода модификации!!!
 #warning IOrderedQueryable<RowContract> ???
 #warning public???
     public class Query<RowContract> : RowSource<RowContract> 
     {
-        internal Query(Table<RowContract> Source) : base(Source.Context)
+#warning наплодить конструкторов чтобы не слать через стек лишнее
+        internal Query(RowSource<RowContract> Source, string[] sql, int SelectListStart, int SelectListLength, int NextWhereClausePosition,
+            bool HasWhereClause = false
+            ) : base(Source.Context)
         {
-            sql_query = Source.GetSQL();
-        }    
-
-        internal bool AddWhereCondition(Expression Predicate) 
-        { 
-#warning ваще не так 
-            return false;
+            this.Source = Source;
+            this.sql_array = sql;
+            this.HasWhereClause = HasWhereClause;
+            this.NextWhereClausePosition = NextWhereClausePosition;
+            this.SelectListStart = SelectListStart;
+            this.SelectListLength = SelectListStart;
         }
 
-     //   private readonly Plain_TSQL_SelectQuery sql_query;
-      /*  internal override Plain_TSQL_SelectQuery GetSQL()
-        {
-#warning клонировать
-#warning когда запросы будут немутабельны можно будет не клонировать
+        private RowSource<RowContract> Source;
 
-            return sql_query;
-        }*/
+        protected internal override int SelectListStart { get; }
+
+        protected internal override int SelectListLength { get; }
+
+        internal override Query<RowContract> MakeWhere(Expression Condition)
+        {
+            var WhereClauseArrayLength = 2;
+            var new_sql_array = new string[sql_array.Length + WhereClauseArrayLength];
+            Array.Copy(sql_array, new_sql_array, NextWhereClausePosition);
+            Array.Copy(sql_array, NextWhereClausePosition, new_sql_array, NextWhereClausePosition + WhereClauseArrayLength, sql_array.Length - NextWhereClausePosition);
+
+            new_sql_array[NextWhereClausePosition] = HasWhereClause ? "AND " : "WHERE ";
+            new_sql_array[NextWhereClausePosition + 1] = "2 = 2 ";
+
+            return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
+                HasWhereClause: true);
+        }
+
 
         public override IEnumerator<RowContract> GetEnumerator()
         {
             // обращение не к GetSQL, а к полю намеренно
-            return Context.ExecuteContract<RowContract>(sql_query).GetEnumerator();
+            return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
         }
     }
 
@@ -288,7 +315,7 @@ namespace nORM
         /// <summary>
         /// Имя таблицы в базе данных
         /// </summary>
-        public string Name { get; private set; }
+        public string Name { get; }
 
         /// <summary>
         /// Конструктор для вызова из динамического класса базы данных.
@@ -301,15 +328,24 @@ namespace nORM
             sql_array = new string[] { "SELECT ", "* ", "FROM ", Name, " " };
         } 
 
-        private string[] sql_array;
-        private string sql_query = null;
-
-        internal override string[] GetSQLArray() { return sql_array; }
-        internal override string GetSQL() { return sql_query ?? (sql_query = string.Concat(sql_array)); }
-
         public override IEnumerator<RowContract> GetEnumerator()
         {
             return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
         }
+
+        internal override Query<RowContract> MakeWhere(Expression Condition)
+        {
+            var new_sql_array = new string[sql_array.Length + 2];
+            Array.Copy(sql_array, new_sql_array, sql_array.Length);
+            new_sql_array[sql_array.Length] = "WHERE ";
+            new_sql_array[sql_array.Length + 1] = "1 = 1 ";
+
+            return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
+                HasWhereClause: true);
+        }
+
+        protected internal override int SelectListStart => 1;
+
+        protected internal override int SelectListLength => 1;
     }
 }
