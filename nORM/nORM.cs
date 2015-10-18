@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 #warning сунуть как можно больше проверок в дебаг
 #warning материализация в список - вероятно проблема. фикс должен коснуться как материализации, так и метода выполнения в контексте бд
@@ -74,13 +75,22 @@ namespace nORM
     
     internal sealed class RowProvider : IQueryProvider
     {
-        #region Одиночка
-
+        #region Singleton
         private RowProvider() { }
+        public static RowProvider Singleton { get; } = new RowProvider();
+        #endregion
 
-        static RowProvider() { Singleton = new RowProvider(); }
+        #region Implemented method tokens
 
-        public static RowProvider Singleton { get; }
+        private static MethodInfo FindExtension(string Name, params Type[] GenericDefinions) =>
+            (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
+             where method.Name == Name
+             let method_args = method.GetParameters().Select(p => p.ParameterType.GetGenericTypeDefinition())
+             where method_args.SequenceEqual(GenericDefinions)
+             select method).Single();
+
+        private static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
+        private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
 
         #endregion
 
@@ -129,7 +139,7 @@ namespace nORM
             if (TheEnumerable != null)
             {
 #warning неправильно делать материализацию сразу
-#warning toArray - эффективно ли так и работает ли List<TElement>?
+#warning ToList - эффективно ли так и работает ли List<TElement>?
                 var List = TheEnumerable as List<TElement> ?? TheEnumerable.ToList();
                 var Arr = List.AsQueryable<TElement>();
                 return Arr.Provider.CreateQuery<TElement>(
@@ -167,9 +177,17 @@ namespace nORM
 
             // рассматриваем различные скалярные штуки
 
-#warning магическая константа
-#warning это только один каунт из возможных
-            if (mc_expr.Method.Name == "Count")
+            var GenericDefinion = mc_expr.Method.GetGenericMethodDefinition();
+            
+            if (GenericDefinion == PredicatedCount)
+            {
+#warning i feel a bad performance in the code
+                Type TemplateType = TargetObject.GetType().GetGenericArguments()[0];
+                var M = typeof(RowSource<>).MakeGenericType(TemplateType).GetMethod("MakeWhere", BindingFlags.NonPublic | BindingFlags.Instance);
+                TargetObject = (RowSource)M.Invoke(TargetObject, new object[] { mc_expr.Arguments[1] });
+            }
+
+            if (GenericDefinion == SimpleCount || GenericDefinion == PredicatedCount)
             {
                 var select_list_length = TargetObject.SelectListLength;
                 var select_list_start = TargetObject.SelectListStart;
@@ -177,8 +195,7 @@ namespace nORM
 
                 var old_sql_query = TargetObject.GetSQLArray();
                 var new_sql_query = new string[old_sql_query.Length + 3 - select_list_length];
-
-
+                
                 Array.Copy(old_sql_query, new_sql_query, select_list_start);
                 new_sql_query[select_list_start] = "COUNT(*) ";
                 Array.Copy(old_sql_query, select_list_end, new_sql_query, select_list_start + 1, old_sql_query.Length - select_list_end);
@@ -186,7 +203,8 @@ namespace nORM
                 var SqlQuery = string.Concat(new_sql_query);
                 return TargetObject.Context.ExecuteScalar(SqlQuery);
             }
-            else goto failed_to_translate;
+
+            goto failed_to_translate;
 
 
         failed_to_translate:
@@ -267,6 +285,7 @@ namespace nORM
 
 #warning IOrderedQueryable<RowContract> ???
 #warning public???
+#warning а не убрать ли типизацию?
     public class Query<RowContract> : RowSource<RowContract> 
     {
 #warning наплодить конструкторов чтобы не слать через стек лишнее
@@ -301,7 +320,6 @@ namespace nORM
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
         }
-
 
         public override IEnumerator<RowContract> GetEnumerator()
         {
