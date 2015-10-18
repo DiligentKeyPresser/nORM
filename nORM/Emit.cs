@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -36,6 +37,8 @@ namespace nORM
         public static readonly Type TableAttribute = typeof(TableAttribute);
         public static readonly Type FieldAttribute = typeof(FieldAttribute);
         public static readonly Type Queryable = typeof(Queryable);
+        public static readonly Type Expression_generic = typeof(Expression<>);
+        public static readonly Type IQueryable_generic = typeof(IQueryable<>);
 
 
         /// <summary>
@@ -150,7 +153,7 @@ namespace nORM
 
     internal static class RowContractInflater<RowContract>
     {
-        public static Type RowType { get; private set; }
+        public static Type RowType { get; }
         private static ConstructorInfo RowConstructor;
 
         static RowContractInflater()

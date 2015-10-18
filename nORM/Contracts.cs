@@ -30,7 +30,7 @@ namespace nORM
         /// <summary>
         /// Имя представляемой таблицы.
         /// </summary>
-        public string TableName { get; private set; }
+        public string TableName { get; }
 
         /// <summary>
         /// Имя схемы, которой таблица сопоставлена в бд. По умолчанию dbo.
@@ -67,7 +67,7 @@ namespace nORM
         /// <summary>
         /// Номер колонки в таблице
         /// </summary>
-        public int ColumnNumber { get; private set; }
+        public int ColumnNumber { get; }
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
@@ -90,7 +90,7 @@ namespace nORM
         /// <summary>
         /// Тип, который не удалось использовать в качестве контракта
         /// </summary>
-        public Type ContractType { get; private set; }
+        public Type ContractType { get; }
 
         /// <summary>
         /// Был использован недействительный контракт
