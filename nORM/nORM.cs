@@ -412,4 +412,9 @@ namespace nORM
 
         protected internal override int SelectListLength => 1;
     }
+
+    internal static class PredicateTranslator
+    {
+
+    }
 }
