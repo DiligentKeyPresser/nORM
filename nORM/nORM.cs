@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 #warning сунуть как можно больше проверок в дебаг
 #warning материализация в список - вероятно проблема. фикс должен коснуться как материализации, так и метода выполнения в контексте бд
@@ -43,7 +44,7 @@ namespace nORM
             }
         }
 
-        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query)
+        internal IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             using (var connection = new SqlConnection(ConnectionString))
             using (var command = new SqlCommand(Query, connection))
@@ -57,17 +58,20 @@ namespace nORM
                     var row = new object[ColumnCount];
 
                     // список нужен, иначе будет возвращаться итератор по уничтоженному IDisposable
-                    var result = new List<RowContract>();
+                    var result = new List<TElement>();
 #warning нельзя ли заранее узнать размер?
                     while (reader.Read())
                     {
                         reader.GetValues(row);
-                        result.Add(RowContractInflater<RowContract>.Inflate(row));
+                        result.Add(Projection(row));
                     }
                     return result;
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
     }
         
 #warning непонятно, нужен ли такой тип
@@ -89,6 +93,9 @@ namespace nORM
         private static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
         private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
 
+#warning public static IQueryable<TResult> Select<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, int, TResult>> selector);
+#warning public static IQueryable<TResult> Select<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector);
+
         #endregion
 
         public IQueryable CreateQuery(Expression expression)
@@ -107,6 +114,7 @@ namespace nORM
         TResult IQueryProvider.Execute<TResult>(Expression expression) { return (TResult)execute_scalar(expression); }
         object IQueryProvider.Execute(Expression expression) { return execute_scalar(expression); }
 
+#warning move to descendant
         private static object execute_scalar(Expression expression)
         {
             var mc_expr = expression as MethodCallExpression;
