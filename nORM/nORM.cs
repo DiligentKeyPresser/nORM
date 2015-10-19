@@ -81,20 +81,38 @@ namespace nORM
     {
         #region Implemented method tokens
 
-        private static MethodInfo FindExtension(string Name, params Type[] GenericDefinions) =>
-            (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
-             where method.Name == Name
-             let method_args = method.GetParameters().Select(p => p.ParameterType.GetGenericTypeDefinition())
-             where method_args.SequenceEqual(GenericDefinions)
-             select method).Single();
+        private static MethodInfo FindExtension(string Name, params Type[] Arguments)
+        {
+            var most_generic_definions = Arguments.Select(type => type.GetGenericTypeDefinition()).ToArray();
+
+            var expression_definions = (from type in Arguments
+                                        where type.GetGenericTypeDefinition() == TypeOf.Expression_generic
+                                        let gtype = type.GetGenericArguments()[0]
+                                        where gtype.IsGenericType
+                                        select gtype.GetGenericTypeDefinition()).ToArray();
+
+            return (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                    where method.Name == Name
+                    let method_args_actual = method.GetParameters().Select(p => p.ParameterType).ToArray()
+                    let method_args_generic = method_args_actual.Select(p => p.GetGenericTypeDefinition())
+                    where method_args_generic.SequenceEqual(most_generic_definions)
+                    let local_expression_definions = from type in method_args_actual
+                                                     where type.GetGenericTypeDefinition() == TypeOf.Expression_generic
+                                                     let gtype = type.GetGenericArguments()[0]
+                                                     where gtype.IsGenericType
+                                                     select gtype.GetGenericTypeDefinition()
+                    where local_expression_definions.SequenceEqual(expression_definions)
+                    select method).Single();
+        }
 
         private static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
+        private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
         private static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
+        private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
+        private static readonly MethodInfo SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>));
+
 
 #warning public static IQueryable<TResult> Select<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, int, TResult>> selector);
-#warning public static IQueryable<TResult> Select<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, TResult>> selector);
 
         #endregion
 
