@@ -180,9 +180,6 @@ namespace nORM
             // рассматриваем различные скалярные штуки
             var GenericDefinion = mc_expr.Method.GetGenericMethodDefinition();
 
-            //  bool isPredicatedCount = GenericDefinion == PredicatedCount || GenericDefinion == PredicatedCountLong;
-            //  bool isCount = isPredicatedCount || GenericDefinion == SimpleCount || GenericDefinion == SimpleCountLong;
-
             bool
                 isPredicatedScalar = false,
                 isCount = false,
