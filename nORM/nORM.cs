@@ -91,6 +91,8 @@ namespace nORM
 
         private static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
         private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
+        private static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
+        private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
 
         #endregion
 
@@ -171,15 +173,52 @@ namespace nORM
             var const_arg_0 = mc_expr.Arguments[0] as ConstantExpression;
 #if DEBUG
             if (const_arg_0 == null) throw new InvalidProgramException("scalar query method must be applyed to source directly");
-            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("scalar query method must be applyed to RowSource"); 
+            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("scalar query method must be applyed to RowSource");
 #endif
             var TargetObject = const_arg_0.Value as RowSource;
 
             // рассматриваем различные скалярные штуки
-
             var GenericDefinion = mc_expr.Method.GetGenericMethodDefinition();
-            
+
+            //  bool isPredicatedCount = GenericDefinion == PredicatedCount || GenericDefinion == PredicatedCountLong;
+            //  bool isCount = isPredicatedCount || GenericDefinion == SimpleCount || GenericDefinion == SimpleCountLong;
+
+            bool
+                isPredicatedScalar = false,
+                isCount = false,
+                isLongCount = false;
+
+            if (GenericDefinion == SimpleCount)
+            {
+                isCount = true;
+                goto try_to_translate;
+            }
+
             if (GenericDefinion == PredicatedCount)
+            {
+                isCount = true;
+                isPredicatedScalar = true;
+                goto try_to_translate;
+            }
+
+            if (GenericDefinion == SimpleCountLong)
+            {
+                isCount = true;
+                isLongCount = true;
+                goto try_to_translate;
+            }
+
+            if (GenericDefinion == PredicatedCountLong)
+            {
+                isCount = true;
+                isLongCount = true;
+                isPredicatedScalar = true;
+                goto try_to_translate;
+            }
+
+        try_to_translate:
+
+            if (isPredicatedScalar)
             {
 #warning i feel a bad performance in the code
                 Type TemplateType = TargetObject.GetType().GetGenericArguments()[0];
@@ -187,7 +226,7 @@ namespace nORM
                 TargetObject = (RowSource)M.Invoke(TargetObject, new object[] { mc_expr.Arguments[1] });
             }
 
-            if (GenericDefinion == SimpleCount || GenericDefinion == PredicatedCount)
+            if (isCount)
             {
                 var select_list_length = TargetObject.SelectListLength;
                 var select_list_start = TargetObject.SelectListStart;
@@ -195,9 +234,9 @@ namespace nORM
 
                 var old_sql_query = TargetObject.GetSQLArray();
                 var new_sql_query = new string[old_sql_query.Length + 3 - select_list_length];
-                
+
                 Array.Copy(old_sql_query, new_sql_query, select_list_start);
-                new_sql_query[select_list_start] = "COUNT(*) ";
+                new_sql_query[select_list_start] = isLongCount ? "COUNT_BIG(*) " : "COUNT(*) ";
                 Array.Copy(old_sql_query, select_list_end, new_sql_query, select_list_start + 1, old_sql_query.Length - select_list_end);
 
                 var SqlQuery = string.Concat(new_sql_query);

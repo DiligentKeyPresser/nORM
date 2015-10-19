@@ -37,6 +37,12 @@ namespace test_project
             Console.WriteLine("count(...)");
             Console.WriteLine(CopyDatabase.Table1.Count(r=>r.ID > 3));
 
+            Console.WriteLine("LongCount()");
+            Console.WriteLine(CopyDatabase.Table1.LongCount());
+
+            Console.WriteLine("LongCount(...)");
+            Console.WriteLine(CopyDatabase.Table1.LongCount(r => r.ID > 3));
+
             Console.WriteLine();
             Console.WriteLine("loop");
             foreach (var r in CopyDatabase.Table1) Console.WriteLine(r.ID + " " + r.Name);
