@@ -7,6 +7,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "nORM", "nORM\nORM.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "test_project", "test_project\test_project.csproj", "{24993F49-8DC7-4C18-ABC7-E6FCB7D5AD30}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{6FC00F3D-727B-4160-BD97-02D725503FB8}"
+	ProjectSection(SolutionItems) = preProject
+		test_table.sql = test_table.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +29,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{24993F49-8DC7-4C18-ABC7-E6FCB7D5AD30} = {6FC00F3D-727B-4160-BD97-02D725503FB8}
 	EndGlobalSection
 EndGlobal
