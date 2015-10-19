@@ -175,9 +175,11 @@ namespace nORM
             var consgen = constructor.GetILGenerator();
 
             // генерируем свойства
+#warning порядок полей гарантирован???
             var FieldProperties = ContractType.GetProperties().Where(prop => Attribute.IsDefined(prop, TypeOf.FieldAttribute)).ToArray();
-            foreach (var FieldProperty in FieldProperties)
+            for (int field_number = 0; field_number < FieldProperties.Length; field_number++ )
             {
+                var FieldProperty = FieldProperties[field_number];
 #warning Вынести проверку контракта в конструирование базы данных
                 if (FieldProperty.CanWrite) throw new InvalidContractException(ContractType, string.Format("row property ({0}) must be readonly", FieldProperty.Name));
 
@@ -186,7 +188,7 @@ namespace nORM
 
                 consgen.Emit(OpCodes.Ldarg_0); // для stfld
                 consgen.Emit(OpCodes.Ldarg_1);
-                consgen.Emit(OpCodes.Ldc_I4, FieldAttr.ColumnNumber);
+                consgen.Emit(OpCodes.Ldc_I4, field_number);
                 consgen.Emit(OpCodes.Ldelem_Ref);
 
                 if (FieldProperty.PropertyType.IsValueType)

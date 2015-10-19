@@ -366,6 +366,16 @@ namespace nORM
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
     {
+#warning может массивчик?
+        private static readonly string selection_list;
+
+        static Table()
+        {
+#warning порядок полей гарантирован???
+            selection_list = string.Join(", ", typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
+                .Select(p => (Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ColumnName)) + " ";
+        }
+
         /// <summary>
         /// Имя таблицы в базе данных
         /// </summary>
@@ -379,7 +389,7 @@ namespace nORM
             :base(ConnectionContext)
         {
             Name = TableName;
-            sql_array = new string[] { "SELECT ", "* ", "FROM ", Name, " " };
+            sql_array = new string[] { "SELECT ", selection_list, "FROM ", Name, " " };
         } 
 
         public override IEnumerator<RowContract> GetEnumerator()

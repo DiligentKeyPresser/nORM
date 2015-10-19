@@ -57,9 +57,10 @@ namespace nORM
         }
     }
 
+#warning А нужен ли такой атрибут?
     /// <summary>
     /// Атрибут служит для разметки контракта строки.
-    /// Предназначен для указания номера колонки в таблице, которая соответствует каждому свойству объекта.
+    /// Предназначен для указания имени колонки в таблице, которая соответствует каждому свойству объекта.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class FieldAttribute : Attribute
@@ -67,16 +68,16 @@ namespace nORM
         /// <summary>
         /// Номер колонки в таблице
         /// </summary>
-        public int ColumnNumber { get; }
+        public string ColumnName { get; }
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
         /// Тип возвращаемого помечаемым свойством результата должен соответствовать типу данных в базе.
         /// </summary>
-        /// <param name="column">Номер колонки в таблице</param>
-        public FieldAttribute(int column)
+        /// <param name="column">Имя колонки в таблице</param>
+        public FieldAttribute(string column)
         {
-            ColumnNumber = column;
+            ColumnName = column;
         }
     }
 

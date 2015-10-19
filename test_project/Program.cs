@@ -6,13 +6,13 @@ namespace test_project
 {
     public interface ITable1Row
     {
-        [Field(0)]
+        [Field("id")]
         int ID { get; }
 
-        [Field(1)]
+        [Field("count")]
         int Count { get; }
 
-        [Field(2)]
+        [Field("name")]
         string Name { get; }
     }
 
