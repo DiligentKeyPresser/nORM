@@ -73,13 +73,8 @@ namespace nORM
 #warning непонятно, нужен ли такой тип
     internal abstract class DatabaseRow { }
     
-    internal sealed class RowProvider : IQueryProvider
+    internal abstract class RowProvider : IQueryProvider
     {
-        #region Singleton
-        private RowProvider() { }
-        public static RowProvider Singleton { get; } = new RowProvider();
-        #endregion
-
         #region Implemented method tokens
 
         private static MethodInfo FindExtension(string Name, params Type[] GenericDefinions) =>
@@ -102,57 +97,8 @@ namespace nORM
             throw new NotImplementedException();
         }
 
-        public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
-        {
-            var mc_expr = expression as MethodCallExpression;
+        public abstract IQueryable<TElement> CreateQuery<TElement>(Expression expression);
 
-            // проверка структуры дерева выражения, в релизе будем ее опускать
-#if DEBUG
-            if (mc_expr == null) throw new InvalidProgramException("range query must be a method call.");
-            if (mc_expr.Method.DeclaringType != TypeOf.Queryable) throw new InvalidProgramException("query method must be a Queryable member");
-#endif
-            var const_arg_0 = mc_expr.Arguments[0] as ConstantExpression;
-#if DEBUG
-            if (const_arg_0 == null) throw new InvalidProgramException("range query method must be applyed to source directly");
-            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("range query method must be applyed to RowSource");
-#endif 
-            var TargetObject = const_arg_0.Value as RowSource;
-
-#warning магическая константа
-#warning так можно обработать только один из Where
-            if (mc_expr.Method.Name == "Where")
-            {
-#if DEBUG
-                if (TargetObject.GetType().GetGenericArguments()[0] != typeof(TElement)) throw new InvalidProgramException("Where query method must be applyed to RowSource of the same type");
-#endif 
-                var where_target = TargetObject as RowSource<TElement>;
-                var new_query = where_target.MakeWhere(mc_expr.Arguments[1]);
-                if (new_query == null) goto failed_to_translate;
-                else return new_query;
-            }
-            else goto failed_to_translate;
-
-        failed_to_translate: 
-            // попадаем сюда если пришедший метод не транслируется в SQL
-            // и делегируем выполение дальнейшей работы поставщику LinqToObjects
-            // в данном месте выражения будет выполнена материализация сущностей
-            
-            var TheEnumerable = TargetObject as IEnumerable<TElement>;
-            if (TheEnumerable != null)
-            {
-#warning неправильно делать материализацию сразу
-#warning ToList - эффективно ли так и работает ли List<TElement>?
-                var List = TheEnumerable as List<TElement> ?? TheEnumerable.ToList();
-                var Arr = List.AsQueryable<TElement>();
-                return Arr.Provider.CreateQuery<TElement>(
-                    mc_expr.Update(
-                        null,
-#warning эффективно ли?
-                        new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
-            }
-            return null;
-        }
-            
         /// <remarks href="https://msdn.microsoft.com/ru-ru/library/bb549414(v=vs.110).aspx">
         /// Метод Execute выполняет запросы, возвращающие единственное значение (а не перечислимую последовательность значений). 
         /// Деревья выражений, представляющие запросы, возвращающие перечислимые результаты, выполняются при перечислении объекта IQueryable<T>, 
@@ -267,6 +213,69 @@ namespace nORM
         }
     }
 
+    internal class RowProvider<SourceRowContract> : RowProvider
+    {
+        #region Singleton
+        protected RowProvider() { }
+        public static RowProvider<SourceRowContract> Singleton { get; } = new RowProvider<SourceRowContract>();
+        #endregion
+
+        public override IQueryable<TResultElement> CreateQuery<TResultElement>(Expression expression)
+        {
+            var mc_expr = expression as MethodCallExpression;
+
+            // проверка структуры дерева выражения, в релизе будем ее опускать
+#if DEBUG
+            if (mc_expr == null) throw new InvalidProgramException("range query must be a method call.");
+            if (mc_expr.Method.DeclaringType != TypeOf.Queryable) throw new InvalidProgramException("query method must be a Queryable member");
+#endif
+            var const_arg_0 = mc_expr.Arguments[0] as ConstantExpression;
+#if DEBUG
+            if (const_arg_0 == null) throw new InvalidProgramException("range query method must be applyed to source directly");
+            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("range query method must be applyed to RowSource");
+#endif 
+            var TargetObject = const_arg_0.Value as RowSource;
+
+#warning магическая константа
+#warning так можно обработать только один из Where
+            if (mc_expr.Method.Name == "Where")
+            {
+#if DEBUG
+                if (typeof(SourceRowContract) != typeof(TResultElement)) throw new InvalidProgramException("Where query method must be applyed to RowSource of the same type");
+#endif 
+                var where_target = TargetObject as RowSource<TResultElement>;
+                var new_query = where_target.MakeWhere(mc_expr.Arguments[1]);
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
+            }
+            else goto failed_to_translate;
+
+            failed_to_translate:
+            // попадаем сюда если пришедший метод не транслируется в SQL
+            // и делегируем выполение дальнейшей работы поставщику LinqToObjects
+            // в данном месте выражения будет выполнена материализация сущностей
+
+            var TheEnumerable = TargetObject as IEnumerable<SourceRowContract>;
+            if (TheEnumerable != null)
+            {
+#warning SELECT is still unefficient
+#warning неправильно делать материализацию сразу
+#warning ToList - эффективно ли так и работает ли List<TElement>?
+                var List = TheEnumerable as List<SourceRowContract> ?? TheEnumerable.ToList();
+                var Arr = List.AsQueryable();
+                return Arr.Provider.CreateQuery<TResultElement>(
+                    mc_expr.Update(
+                        null,
+#warning эффективно ли?
+                        new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
+            }
+            return null;
+        }
+
+
+
+    }
+
     /// <summary>
     /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
     /// </summary>
@@ -306,7 +315,7 @@ namespace nORM
         /// </summary>
         public Type ElementType { get { return contract_type; } }
         public Expression Expression { get; }
-        public IQueryProvider Provider { get { return RowProvider.Singleton; } }
+        public IQueryProvider Provider { get { return RowProvider<RowContract>.Singleton; } }
         public RowSource(DatabaseContext ConnectionContext) : base(ConnectionContext)
         {
             Expression = Expression.Constant(this);
