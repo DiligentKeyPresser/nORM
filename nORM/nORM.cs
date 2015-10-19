@@ -118,7 +118,8 @@ namespace nORM
 
         public IQueryable CreateQuery(Expression expression)
         {
-#warning выяснить нужен ли, и если нужен реализовать по примеру Execute   
+        //Several of the standard query operator methods defined in Queryable, such as OfType<TResult> and Cast<TResult>, call this method.
+#warning must be implemented   
             throw new NotImplementedException();
         }
 
