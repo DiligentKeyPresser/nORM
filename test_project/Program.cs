@@ -27,9 +27,11 @@ namespace test_project
     {
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
+            var CopyDatabase = Database<ITestDB>.Inflate("server", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
+            Console.WriteLine("select()");
+            var arr = CopyDatabase.Table1.Select(f => f.Name).ToArray();
 
             Console.WriteLine("count()");
             Console.WriteLine(CopyDatabase.Table1.Count());

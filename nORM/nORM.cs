@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 #warning сунуть как можно больше проверок в дебаг
 #warning материализация в список - вероятно проблема. фикс должен коснуться как материализации, так и метода выполнения в контексте бд
@@ -43,7 +44,7 @@ namespace nORM
             }
         }
 
-        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query)
+        internal IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             using (var connection = new SqlConnection(ConnectionString))
             using (var command = new SqlCommand(Query, connection))
@@ -57,102 +58,73 @@ namespace nORM
                     var row = new object[ColumnCount];
 
                     // список нужен, иначе будет возвращаться итератор по уничтоженному IDisposable
-                    var result = new List<RowContract>();
+                    var result = new List<TElement>();
 #warning нельзя ли заранее узнать размер?
                     while (reader.Read())
                     {
                         reader.GetValues(row);
-                        result.Add(RowContractInflater<RowContract>.Inflate(row));
+                        result.Add(Projection(row));
                     }
                     return result;
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
     }
         
 #warning непонятно, нужен ли такой тип
     internal abstract class DatabaseRow { }
     
-    internal sealed class RowProvider : IQueryProvider
+    internal abstract class RowProvider : IQueryProvider
     {
-        #region Singleton
-        private RowProvider() { }
-        public static RowProvider Singleton { get; } = new RowProvider();
-        #endregion
-
         #region Implemented method tokens
 
-        private static MethodInfo FindExtension(string Name, params Type[] GenericDefinions) =>
-            (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
-             where method.Name == Name
-             let method_args = method.GetParameters().Select(p => p.ParameterType.GetGenericTypeDefinition())
-             where method_args.SequenceEqual(GenericDefinions)
-             select method).Single();
+        private static MethodInfo FindExtension(string Name, params Type[] Arguments)
+        {
+            var most_generic_definions = Arguments.Select(type => type.GetGenericTypeDefinition()).ToArray();
 
-        private static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
-        private static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, TypeOf.Expression_generic);
+            var expression_definions = (from type in Arguments
+                                        where type.GetGenericTypeDefinition() == TypeOf.Expression_generic
+                                        let gtype = type.GetGenericArguments()[0]
+                                        where gtype.IsGenericType
+                                        select gtype.GetGenericTypeDefinition()).ToArray();
+
+            return (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                    where method.Name == Name
+                    let method_args_actual = method.GetParameters().Select(p => p.ParameterType).ToArray()
+                    let method_args_generic = method_args_actual.Select(p => p.GetGenericTypeDefinition())
+                    where method_args_generic.SequenceEqual(most_generic_definions)
+                    let local_expression_definions = from type in method_args_actual
+                                                     where type.GetGenericTypeDefinition() == TypeOf.Expression_generic
+                                                     let gtype = type.GetGenericArguments()[0]
+                                                     where gtype.IsGenericType
+                                                     select gtype.GetGenericTypeDefinition()
+                    where local_expression_definions.SequenceEqual(expression_definions)
+                    select method).Single();
+        }
+#warning use tokens instead?
+        protected static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
+        protected static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
+        protected static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
+        protected static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
+#warning         protected static readonly MethodInfo SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>));
+#warning protected static readonly MethodInfo SelectIndexed = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, object>>));
+
+
 
         #endregion
 
         public IQueryable CreateQuery(Expression expression)
         {
-#warning выяснить нужен ли, и если нужен реализовать по примеру Execute   
+        //Several of the standard query operator methods defined in Queryable, such as OfType<TResult> and Cast<TResult>, call this method.
+#warning must be implemented   
             throw new NotImplementedException();
         }
 
-        public IQueryable<TElement> CreateQuery<TElement>(Expression expression)
-        {
-            var mc_expr = expression as MethodCallExpression;
+        public abstract IQueryable<TElement> CreateQuery<TElement>(Expression expression);
 
-            // проверка структуры дерева выражения, в релизе будем ее опускать
-#if DEBUG
-            if (mc_expr == null) throw new InvalidProgramException("range query must be a method call.");
-            if (mc_expr.Method.DeclaringType != TypeOf.Queryable) throw new InvalidProgramException("query method must be a Queryable member");
-#endif
-            var const_arg_0 = mc_expr.Arguments[0] as ConstantExpression;
-#if DEBUG
-            if (const_arg_0 == null) throw new InvalidProgramException("range query method must be applyed to source directly");
-            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("range query method must be applyed to RowSource");
-#endif 
-            var TargetObject = const_arg_0.Value as RowSource;
-
-#warning магическая константа
-#warning так можно обработать только один из Where
-            if (mc_expr.Method.Name == "Where")
-            {
-#if DEBUG
-                if (TargetObject.GetType().GetGenericArguments()[0] != typeof(TElement)) throw new InvalidProgramException("Where query method must be applyed to RowSource of the same type");
-#endif 
-                var where_target = TargetObject as RowSource<TElement>;
-                var new_query = where_target.MakeWhere(mc_expr.Arguments[1]);
-                if (new_query == null) goto failed_to_translate;
-                else return new_query;
-            }
-            else goto failed_to_translate;
-
-        failed_to_translate: 
-            // попадаем сюда если пришедший метод не транслируется в SQL
-            // и делегируем выполение дальнейшей работы поставщику LinqToObjects
-            // в данном месте выражения будет выполнена материализация сущностей
-            
-            var TheEnumerable = TargetObject as IEnumerable<TElement>;
-            if (TheEnumerable != null)
-            {
-#warning неправильно делать материализацию сразу
-#warning ToList - эффективно ли так и работает ли List<TElement>?
-                var List = TheEnumerable as List<TElement> ?? TheEnumerable.ToList();
-                var Arr = List.AsQueryable<TElement>();
-                return Arr.Provider.CreateQuery<TElement>(
-                    mc_expr.Update(
-                        null,
-#warning эффективно ли?
-                        new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
-            }
-            return null;
-        }
-            
         /// <remarks href="https://msdn.microsoft.com/ru-ru/library/bb549414(v=vs.110).aspx">
         /// Метод Execute выполняет запросы, возвращающие единственное значение (а не перечислимую последовательность значений). 
         /// Деревья выражений, представляющие запросы, возвращающие перечислимые результаты, выполняются при перечислении объекта IQueryable<T>, 
@@ -161,6 +133,7 @@ namespace nORM
         TResult IQueryProvider.Execute<TResult>(Expression expression) { return (TResult)execute_scalar(expression); }
         object IQueryProvider.Execute(Expression expression) { return execute_scalar(expression); }
 
+#warning move to descendant
         private static object execute_scalar(Expression expression)
         {
             var mc_expr = expression as MethodCallExpression;
@@ -177,6 +150,7 @@ namespace nORM
 #endif
             var TargetObject = const_arg_0.Value as RowSource;
 
+#warning outdated with FindExtension. Use tokens
             // рассматриваем различные скалярные штуки
             var GenericDefinion = mc_expr.Method.GetGenericMethodDefinition();
 
@@ -267,6 +241,79 @@ namespace nORM
         }
     }
 
+    internal class RowProvider<SourceRowContract> : RowProvider
+    {
+        #region Singleton
+        protected RowProvider() { }
+        public static RowProvider<SourceRowContract> Singleton { get; } = new RowProvider<SourceRowContract>();
+        #endregion
+
+        public override IQueryable<TResultElement> CreateQuery<TResultElement>(Expression expression)
+        {
+            var mc_expr = expression as MethodCallExpression;
+
+            // проверка структуры дерева выражения, в релизе будем ее опускать
+#if DEBUG
+            if (mc_expr == null) throw new InvalidProgramException("range query must be a method call.");
+            if (mc_expr.Method.DeclaringType != TypeOf.Queryable) throw new InvalidProgramException("query method must be a Queryable member");
+#endif
+            var const_arg_0 = mc_expr.Arguments[0] as ConstantExpression;
+#if DEBUG
+            if (const_arg_0 == null) throw new InvalidProgramException("range query method must be applyed to source directly");
+            if (!(const_arg_0.Value is RowSource)) throw new InvalidProgramException("range query method must be applyed to RowSource");
+#endif 
+            var TargetObject = const_arg_0.Value as RowSource;
+
+#warning магическая константа
+#warning так можно обработать только один из Where
+            if (mc_expr.Method.Name == "Where")
+            {
+#if DEBUG
+                if (typeof(SourceRowContract) != typeof(TResultElement)) throw new InvalidProgramException("Where query method must be applyed to RowSource of the same type");
+#endif 
+                var where_target = TargetObject as RowSource<TResultElement>;
+                var new_query = where_target.MakeWhere(mc_expr.Arguments[1]);
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
+            }
+
+            /*
+            if (mc_expr.Method.MetadataToken == SimpleSelect.MetadataToken)
+            {
+                var select_target = TargetObject as RowSource<SourceRowContract>;
+                var new_query = select_target.MakeProjection<TResultElement>(mc_expr.Arguments[1]);
+#warning is this even possible?
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
+            }
+            */
+
+            failed_to_translate:
+            // попадаем сюда если пришедший метод не транслируется в SQL
+            // и делегируем выполение дальнейшей работы поставщику LinqToObjects
+            // в данном месте выражения будет выполнена материализация сущностей
+
+            var TheEnumerable = TargetObject as IEnumerable<SourceRowContract>;
+            if (TheEnumerable != null)
+            {
+#warning SELECT is still unefficient
+#warning неправильно делать материализацию сразу
+#warning ToList - эффективно ли так и работает ли List<TElement>?
+                var List = TheEnumerable as List<SourceRowContract> ?? TheEnumerable.ToList();
+                var Arr = List.AsQueryable();
+                return Arr.Provider.CreateQuery<TResultElement>(
+                    mc_expr.Update(
+                        null,
+#warning эффективно ли?
+                        new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
+            }
+            return null;
+        }
+
+
+
+    }
+
     /// <summary>
     /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
     /// </summary>
@@ -306,7 +353,7 @@ namespace nORM
         /// </summary>
         public Type ElementType { get { return contract_type; } }
         public Expression Expression { get; }
-        public IQueryProvider Provider { get { return RowProvider.Singleton; } }
+        public IQueryProvider Provider { get { return RowProvider<RowContract>.Singleton; } }
         public RowSource(DatabaseContext ConnectionContext) : base(ConnectionContext)
         {
             Expression = Expression.Constant(this);
@@ -356,12 +403,12 @@ namespace nORM
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
         }
-
         public override IEnumerator<RowContract> GetEnumerator()
         {
             // обращение не к GetSQL, а к полю намеренно
             return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
         }
+
     }
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
@@ -412,4 +459,10 @@ namespace nORM
 
         protected internal override int SelectListLength => 1;
     }
+    /*
+    public class ProjectionQuery<TResultElement, TSourceRowContract>: Query<TResultElement>
+    {
+
+    }
+    */
 }
