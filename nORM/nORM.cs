@@ -104,15 +104,15 @@ namespace nORM
                     where local_expression_definions.SequenceEqual(expression_definions)
                     select method).Single();
         }
+#warning use tokens instead?
+        protected static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
+        protected static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
+        protected static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
+        protected static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
+#warning         protected static readonly MethodInfo SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>));
+#warning protected static readonly MethodInfo SelectIndexed = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, object>>));
 
-        private static readonly MethodInfo SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCount = FindExtension("Count", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
-        private static readonly MethodInfo SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic);
-        private static readonly MethodInfo PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>));
-        private static readonly MethodInfo SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>));
 
-
-#warning public static IQueryable<TResult> Select<TSource, TResult>(this IQueryable<TSource> source, Expression<Func<TSource, int, TResult>> selector);
 
         #endregion
 
@@ -150,6 +150,7 @@ namespace nORM
 #endif
             var TargetObject = const_arg_0.Value as RowSource;
 
+#warning outdated with FindExtension. Use tokens
             // рассматриваем различные скалярные штуки
             var GenericDefinion = mc_expr.Method.GetGenericMethodDefinition();
 
@@ -275,7 +276,17 @@ namespace nORM
                 if (new_query == null) goto failed_to_translate;
                 else return new_query;
             }
-            else goto failed_to_translate;
+
+            /*
+            if (mc_expr.Method.MetadataToken == SimpleSelect.MetadataToken)
+            {
+                var select_target = TargetObject as RowSource<SourceRowContract>;
+                var new_query = select_target.MakeProjection<TResultElement>(mc_expr.Arguments[1]);
+#warning is this even possible?
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
+            }
+            */
 
             failed_to_translate:
             // попадаем сюда если пришедший метод не транслируется в SQL
@@ -392,12 +403,12 @@ namespace nORM
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
         }
-
         public override IEnumerator<RowContract> GetEnumerator()
         {
             // обращение не к GetSQL, а к полю намеренно
             return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
         }
+
     }
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
@@ -448,4 +459,10 @@ namespace nORM
 
         protected internal override int SelectListLength => 1;
     }
+    /*
+    public class ProjectionQuery<TResultElement, TSourceRowContract>: Query<TResultElement>
+    {
+
+    }
+    */
 }

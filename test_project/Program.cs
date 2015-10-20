@@ -31,8 +31,7 @@ namespace test_project
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             Console.WriteLine("select()");
-            var d = CopyDatabase.Table1.Select(f => f.ID > 5);
-            var arr = CopyDatabase.Table1.Select(f => f.ID > 5).ToArray();
+            var arr = CopyDatabase.Table1.Select(f => f.Name).ToArray();
 
             Console.WriteLine("count()");
             Console.WriteLine(CopyDatabase.Table1.Count());
