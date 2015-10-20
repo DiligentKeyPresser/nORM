@@ -33,15 +33,19 @@ namespace test_project
             Console.WriteLine("select()");
             var arr = CopyDatabase.Table1.Select(f => f.Name).ToArray();
 
+            Console.WriteLine();
             Console.WriteLine("count()");
             Console.WriteLine(CopyDatabase.Table1.Count());
 
+            Console.WriteLine();
             Console.WriteLine("count(...)");
             Console.WriteLine(CopyDatabase.Table1.Count(r=>r.ID > 3));
 
+            Console.WriteLine();
             Console.WriteLine("LongCount()");
             Console.WriteLine(CopyDatabase.Table1.LongCount());
 
+            Console.WriteLine();
             Console.WriteLine("LongCount(...)");
             Console.WriteLine(CopyDatabase.Table1.LongCount(r => r.ID > 3));
 
@@ -56,7 +60,7 @@ namespace test_project
 
             Console.WriteLine();
             Console.WriteLine("where.Count()");
-            var filteredCount = CopyDatabase.Table1.Where(b => b.Count <= 5).Count();
+            Console.WriteLine(CopyDatabase.Table1.Where(b => b.Count <= 5).Count());
 
             Console.WriteLine();
             Console.WriteLine("Take(3)");
