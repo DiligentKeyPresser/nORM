@@ -31,6 +31,8 @@ namespace nORM
     /// </summary>
     internal static class TypeOf
     {
+        public static readonly Type Int32 = typeof(int);
+        public static readonly Type Int16 = typeof(short);
         public static readonly Type String = typeof(string);
         public static readonly Type DatabaseContext = typeof(DatabaseContext);
         public static readonly Type DatabaseRow = typeof(DatabaseRow);
