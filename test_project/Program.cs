@@ -27,19 +27,22 @@ namespace test_project
     {
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
+            var CopyDatabase = Database<ITestDB>.Inflate("server", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-
+            Console.WriteLine();
             Console.WriteLine("count()");
             Console.WriteLine(CopyDatabase.Table1.Count());
 
+            Console.WriteLine();
             Console.WriteLine("count(...)");
             Console.WriteLine(CopyDatabase.Table1.Count(r=>r.ID > 3));
 
+            Console.WriteLine();
             Console.WriteLine("LongCount()");
             Console.WriteLine(CopyDatabase.Table1.LongCount());
 
+            Console.WriteLine();
             Console.WriteLine("LongCount(...)");
             Console.WriteLine(CopyDatabase.Table1.LongCount(r => r.ID > 3));
 
@@ -54,7 +57,7 @@ namespace test_project
 
             Console.WriteLine();
             Console.WriteLine("where.Count()");
-            var filteredCount = CopyDatabase.Table1.Where(b => b.Count <= 5).Count();
+            Console.WriteLine(CopyDatabase.Table1.Where(b => b.Count <= 5).Count());
 
             Console.WriteLine();
             Console.WriteLine("Take(3)");

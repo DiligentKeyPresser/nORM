@@ -345,15 +345,17 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var WhereClauseArrayLength = 2;
-            var new_sql_array = new string[sql_array.Length + WhereClauseArrayLength];
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(Condition);
+#warning add Debug output
+            if (sql_predicate == null) return null;
+
+            var WhereClauseArrayLength = sql_predicate.Length;
+            var new_sql_array = new string[sql_array.Length + WhereClauseArrayLength + 1];
+
             Array.Copy(sql_array, new_sql_array, NextWhereClausePosition);
-            Array.Copy(sql_array, NextWhereClausePosition, new_sql_array, NextWhereClausePosition + WhereClauseArrayLength, sql_array.Length - NextWhereClausePosition);
-
-            new_sql_array[NextWhereClausePosition] = HasWhereClause ? "AND " : "WHERE ";
-            new_sql_array[NextWhereClausePosition + 1] = "2 = 2 ";
-
-            var qsl_predicate = PredicateTranslator.TranslatePredicate<RowContract>(Condition);
+            Array.Copy(sql_array, NextWhereClausePosition, new_sql_array, NextWhereClausePosition + WhereClauseArrayLength + 1, sql_array.Length - NextWhereClausePosition);
+            Array.Copy(sql_predicate, 0, new_sql_array, NextWhereClausePosition + 1, WhereClauseArrayLength);
+            new_sql_array[NextWhereClausePosition] = HasWhereClause ? " AND " : "WHERE ";
 
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
@@ -401,10 +403,16 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var new_sql_array = new string[sql_array.Length + 2];
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(Condition);
+#warning add Debug output
+            if (sql_predicate == null) return null;
+
+            var WhereClauseArrayLength = sql_predicate.Length;
+            var new_sql_array = new string[sql_array.Length + WhereClauseArrayLength + 1];
+
             Array.Copy(sql_array, new_sql_array, sql_array.Length);
             new_sql_array[sql_array.Length] = "WHERE ";
-            new_sql_array[sql_array.Length + 1] = "1 = 1 ";
+            Array.Copy(sql_predicate, 0, new_sql_array, sql_array.Length + 1, WhereClauseArrayLength);
 
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
@@ -481,7 +489,7 @@ namespace nORM
                     case ExpressionType.GreaterThan: return MakeBinary(Left, ">", Right);
                     case ExpressionType.GreaterThanOrEqual: return MakeBinary(Left, ">=", Right);
                     case ExpressionType.LessThan: return MakeBinary(Left, "<", Right);
-                    case ExpressionType.LessThanOrEqual: return MakeBinary(Left, "=<", Right);
+                    case ExpressionType.LessThanOrEqual: return MakeBinary(Left, "<=", Right);
 
                     case ExpressionType.Add:
                     case ExpressionType.AddChecked:
