@@ -1,5 +1,6 @@
 ﻿using nORM;
 using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace test_project
@@ -27,7 +28,7 @@ namespace test_project
     {
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate("server", "normtest", "normuser", "normpass");
+            var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             Console.WriteLine("select()");
@@ -71,6 +72,7 @@ namespace test_project
             Console.WriteLine("simple select");
             // foreach (var r in CopyDatabase.Брак.Select(r=>r.Text)) Console.WriteLine(r);*/
 
+            Debugger.Break();
         }
     }
 
