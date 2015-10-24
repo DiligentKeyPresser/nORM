@@ -113,37 +113,31 @@ namespace nORM
                 else return new_query as RowSource<TResultElement>;
             }
 
-        /*
-        if (mc_expr.Method.MetadataToken == SimpleSelect.MetadataToken)
-        {
-            var select_target = TargetObject as RowSource<SourceRowContract>;
-            var new_query = select_target.MakeProjection<TResultElement>(mc_expr.Arguments[1]);
-#warning is this even possible?
-            if (new_query == null) goto failed_to_translate;
-            else return new_query;
-        }
-        */
+            /*
+            if (mc_expr.Method.MetadataToken == SimpleSelect.MetadataToken)
+            {
+                var select_target = TargetObject as RowSource<SourceRowContract>;
+                var new_query = select_target.MakeProjection<TResultElement>(mc_expr.Arguments[1]);
+    #warning is this even possible?
+                if (new_query == null) goto failed_to_translate;
+                else return new_query;
+            }
+            */
 
-        failed_to_translate:
+            failed_to_translate:
             // попадаем сюда если пришедший метод не транслируется в SQL
             // и делегируем выполение дальнейшей работы поставщику LinqToObjects
             // в данном месте выражения будет выполнена материализация сущностей
 
-            var TheEnumerable = TargetObject as IEnumerable<SourceRowContract>;
-            if (TheEnumerable != null)
-            {
+
 #warning SELECT is still unefficient
-#warning неправильно делать материализацию сразу
-#warning ToList - эффективно ли так и работает ли List<TElement>?
-                var List = TheEnumerable as List<SourceRowContract> ?? TheEnumerable.ToList();
-                var Arr = List.AsQueryable();
-                return Arr.Provider.CreateQuery<TResultElement>(
-                    mc_expr.Update(
-                        null,
+            var Materialized = TargetObject.Materialize();
+            return Materialized.Provider.CreateQuery<TResultElement>(mc_expr.Update(
+                    null,
 #warning эффективно ли?
-                        new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
-            }
-            return null;
+                        new Expression[] { Expression.Constant(Materialized) }.Union(mc_expr.Arguments.Skip(1))));
+
+
         }
 
         protected override object execute_scalar(Expression expression)

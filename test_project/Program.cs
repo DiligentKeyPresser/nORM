@@ -34,6 +34,9 @@ namespace test_project
             Console.WriteLine("lazyness test");
             var lt1 = CopyDatabase.Table1.OrderBy(r => r.Count);
             Console.WriteLine("foreach");
+            Console.WriteLine();
+            foreach (var e in lt1) Console.WriteLine(e.Name);
+            Console.WriteLine();
             foreach (var e in lt1) Console.WriteLine(e.Name);
 
             Console.WriteLine("select()");
