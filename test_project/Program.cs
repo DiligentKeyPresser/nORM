@@ -31,6 +31,15 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate("server", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
+            Console.WriteLine("any");
+
+            Console.WriteLine(CopyDatabase.Table1.Where(r => r.Count > 1).Any());
+            Console.WriteLine(CopyDatabase.Table1.Where(r => r.Count > 10000).Any());
+            Console.WriteLine(CopyDatabase.Table1.Any(r=>r.Count > 2));
+
+            Debugger.Break();
+
+            Console.WriteLine();
             Console.WriteLine("lazyness test");
             var lt1 = CopyDatabase.Table1.OrderBy(r => r.Count);
             Console.WriteLine("foreach");

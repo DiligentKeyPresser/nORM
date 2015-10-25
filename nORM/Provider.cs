@@ -54,9 +54,15 @@ namespace nORM
         protected static readonly int SimpleCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic).MetadataToken;
         protected static readonly int PredicatedCountLong = FindExtension("LongCount", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
         protected static readonly int SimpleWhere = FindExtension("Where", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
+        protected static readonly int SimpleAny = FindExtension("Any", TypeOf.IQueryable_generic).MetadataToken;
+        protected static readonly int PredicatedAny = FindExtension("Any", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
+
+#warning public static bool All<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate);
+
 #warning protected static readonly int IndexedWhereWhere = FindExtension("Where", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, bool>>)).MetadataToken;
 #warning protected static readonly int SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>)).MetadataToken;
 #warning protected static readonly int SelectIndexed = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, object>>)).MetadataToken;
+#warning Aggregate - some overloads can be partially evaluated in the sql
 
         #endregion
 
@@ -161,7 +167,21 @@ namespace nORM
             bool
                 isPredicatedScalar = false,
                 isCount = false,
-                isLongCount = false;
+                isLongCount = false,
+                isAny = false;
+
+            if (MethodToken == SimpleAny)
+            {
+                isAny = true;
+                goto try_to_translate;
+            }
+
+            if (MethodToken == PredicatedAny)
+            {
+                isAny = true;
+                isPredicatedScalar = true;
+                goto try_to_translate;
+            }
 
             if (MethodToken == SimpleCount)
             {
@@ -193,11 +213,21 @@ namespace nORM
 
         try_to_translate:
 
+            // if passed scalar function is presicated then we have to use WHERE to filter input rows
             var PredicatedTarget = isPredicatedScalar ? TargetObject.MakeWhere(mc_expr.Arguments[1]) : TargetObject;
             if (PredicatedTarget == null) goto failed_to_translate;
 
-            if (isCount)
-            {
+            if (isCount || isAny) 
+            {// these functions entirely replace selection list
+
+                // we have to figure out what's our new selection clause
+                string NewSelectList = null;
+                if (isLongCount) NewSelectList = "COUNT_BIG(*) ";
+                else if (isCount) NewSelectList = "COUNT(*) ";
+#warning interference with TOP statement
+                else if (isAny) NewSelectList = "TOP 1 1 AS P ";
+
+                // now we have to modify our query
                 var select_list_length = PredicatedTarget.SelectListLength;
                 var select_list_start = PredicatedTarget.SelectListStart;
                 var select_list_end = select_list_start + select_list_length;
@@ -206,8 +236,17 @@ namespace nORM
                 var new_sql_query = new string[old_sql_query.Length + 3 - select_list_length];
 
                 Array.Copy(old_sql_query, new_sql_query, select_list_start);
-                new_sql_query[select_list_start] = isLongCount ? "COUNT_BIG(*) " : "COUNT(*) ";
+                new_sql_query[select_list_start] = NewSelectList;
                 Array.Copy(old_sql_query, select_list_end, new_sql_query, select_list_start + 1, old_sql_query.Length - select_list_end);
+
+                if (isAny)
+                {// a few more things to do
+                    old_sql_query = new_sql_query;
+                    new_sql_query = new string[old_sql_query.Length + 2];
+                    new_sql_query[0] = "SELECT CAST(COUNT(*) AS BIT) FROM (";
+                    Array.Copy(old_sql_query, 0, new_sql_query, 1, old_sql_query.Length);
+                    new_sql_query[old_sql_query.Length + 1] = ") AS T";
+                }
 
                 var SqlQuery = string.Concat(new_sql_query);
                 return PredicatedTarget.Context.ExecuteScalar(SqlQuery);
