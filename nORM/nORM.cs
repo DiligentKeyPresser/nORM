@@ -43,7 +43,7 @@ namespace nORM
     /// таблицы, представления, результаты выполнения функций и других запросов
     /// </summary>
     /// <typeparam name="RowContract"> Тип строк, которые можно получить из данного объекта </typeparam>
-    public abstract class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
+    public abstract partial class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
     {
         protected static readonly Type contract_type = typeof(RowContract);
         /// <summary>
@@ -56,9 +56,6 @@ namespace nORM
         {
             Expression = Expression.Constant(this);
         }
-        public abstract IEnumerator<RowContract> GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() { return GetEnumerator(); }
-
         internal abstract Query<RowContract> MakeWhere(Expression Condition);
         internal protected int NextWhereClausePosition { get; protected set; }
         internal protected bool HasWhereClause { get; protected set; }
@@ -105,12 +102,6 @@ namespace nORM
             return new Query<RowContract>(this, new_sql_array, SelectListStart, SelectListLength, new_sql_array.Length,
                 HasWhereClause: true);
         }
-        public override IEnumerator<RowContract> GetEnumerator()
-        {
-            // обращение не к GetSQL, а к полю намеренно
-            return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
-        }
-
     }
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
@@ -140,11 +131,6 @@ namespace nORM
             Name = TableName;
             sql_array = new string[] { "SELECT ", selection_list, "FROM ", Name, " " };
         } 
-
-        public override IEnumerator<RowContract> GetEnumerator()
-        {
-            return Context.ExecuteContract<RowContract>(GetSQL()).GetEnumerator();
-        }
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {

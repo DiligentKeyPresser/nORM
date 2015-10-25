@@ -37,6 +37,7 @@ namespace nORM
             }
         }
 
+#warning IEnumerator would be better
         internal IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             using (var connection = new SqlConnection(ConnectionString))
@@ -63,6 +64,7 @@ namespace nORM
             }
         }
 
+#warning IEnumerator would be better
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
     }
