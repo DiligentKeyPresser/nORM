@@ -127,17 +127,16 @@ namespace nORM
             failed_to_translate:
             // попадаем сюда если пришедший метод не транслируется в SQL
             // и делегируем выполение дальнейшей работы поставщику LinqToObjects
-            // в данном месте выражения будет выполнена материализация сущностей
-
 
 #warning SELECT is still unefficient
             var Materialized = TargetObject.Materialize();
-            return Materialized.Provider.CreateQuery<TResultElement>(mc_expr.Update(
-                    null,
-#warning эффективно ли?
-                        new Expression[] { Expression.Constant(Materialized) }.Union(mc_expr.Arguments.Skip(1))));
 
+            var NewArguments = new Expression[mc_expr.Arguments.Count];
+            NewArguments[0] = Expression.Constant(Materialized);
+            for (int i = 1; i < mc_expr.Arguments.Count; i++)
+                NewArguments[i] = mc_expr.Arguments[i];
 
+            return Materialized.Provider.CreateQuery<TResultElement>(mc_expr.Update(null, NewArguments));
         }
 
         protected override object execute_scalar(Expression expression)
@@ -217,33 +216,19 @@ namespace nORM
             goto failed_to_translate;
 
 
-        failed_to_translate:
+            failed_to_translate:
             // попадаем сюда если пришедший метод не транслируется в SQL
             // и делегируем выполение дальнейшей работы поставщику LinqToObjects
 
-#warning реализовать
-            // но уже это совсем другая история
-            throw new NotImplementedException();
+            var Materialized = TargetObject.Materialize();
 
-            if (PredicatedTarget != null)
-            {
-                //здесь надо заменить скалярную функцию на версию без предиката
-            }
+            var NewArguments = new Expression[mc_expr.Arguments.Count];
+            NewArguments[0] = Expression.Constant(Materialized);
+            for (int i = 1; i < mc_expr.Arguments.Count; i++)
+                NewArguments[i] = mc_expr.Arguments[i];
 
-            /*
-            var TheEnumerable = TargetObject as IEnumerable<TElement>;
-            if (TheEnumerable != null)
-            {
-#warning toArray - эффективно ли так и работает ли List<TElement>?
-                var List = TheEnumerable as List<TElement> ?? TheEnumerable.ToList();
-                var Arr = List.AsQueryable<TElement>();
-                return Arr.Provider.CreateQuery<TElement>(
-                    mc_expr.Update(
-                        null,
-#warning эффективно ли?
- new Expression[] { Expression.Constant(Arr) }.Union(mc_expr.Arguments.Skip(1))));
-            }        
-            return null; */
+#warning why Execute works while Execute<SourceRowContract> throws an exception?
+            return Materialized.Provider.Execute(mc_expr.Update(null, NewArguments));
         }
     }
 }

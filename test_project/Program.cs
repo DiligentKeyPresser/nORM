@@ -39,6 +39,10 @@ namespace test_project
             Console.WriteLine();
             foreach (var e in lt1) Console.WriteLine(e.Name);
 
+            Console.WriteLine();
+            Console.WriteLine(CopyDatabase.Table1.Any().ToString());
+            Console.WriteLine(CopyDatabase.Table1.First().Name);
+
             Console.WriteLine("select()");
             var arr = CopyDatabase.Table1.Select(f => f.Name).ToArray();
 
