@@ -56,8 +56,7 @@ namespace nORM
         protected static readonly int SimpleWhere = FindExtension("Where", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
         protected static readonly int SimpleAny = FindExtension("Any", TypeOf.IQueryable_generic).MetadataToken;
         protected static readonly int PredicatedAny = FindExtension("Any", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
-
-#warning public static bool All<TSource>(this IQueryable<TSource> source, Expression<Func<TSource, bool>> predicate);
+        protected static readonly int PredicatedAll = FindExtension("All", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
 
 #warning protected static readonly int IndexedWhereWhere = FindExtension("Where", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, bool>>)).MetadataToken;
 #warning protected static readonly int SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>)).MetadataToken;
@@ -168,7 +167,17 @@ namespace nORM
                 isPredicatedScalar = false,
                 isCount = false,
                 isLongCount = false,
-                isAny = false;
+                isAny = false,
+                deMorgan = false;
+
+
+            if (MethodToken == PredicatedAll)
+            {
+                deMorgan = true;
+                isAny = true;
+                isPredicatedScalar = true;
+                goto try_to_translate;
+            }
 
             if (MethodToken == SimpleAny)
             {
@@ -211,13 +220,22 @@ namespace nORM
                 goto try_to_translate;
             }
 
-        try_to_translate:
+            try_to_translate:
 
             // if passed scalar function is presicated then we have to use WHERE to filter input rows
-            var PredicatedTarget = isPredicatedScalar ? TargetObject.MakeWhere(mc_expr.Arguments[1]) : TargetObject;
-            if (PredicatedTarget == null) goto failed_to_translate;
+            RowSource<SourceRowContract> PredicatedTarget = null;
+            if (isPredicatedScalar)
+            {
+                var predicate = deMorgan ? PredicateTranslator.InvertPredicate(mc_expr.Arguments[1]) : mc_expr.Arguments[1];
+                if (predicate == null) goto failed_to_translate;
 
-            if (isCount || isAny) 
+                PredicatedTarget = TargetObject.MakeWhere(predicate);
+                if (PredicatedTarget == null) goto failed_to_translate;
+            }
+            else
+                PredicatedTarget = TargetObject;
+
+            if (isCount || isAny)
             {// these functions entirely replace selection list
 
                 // we have to figure out what's our new selection clause
@@ -249,7 +267,8 @@ namespace nORM
                 }
 
                 var SqlQuery = string.Concat(new_sql_query);
-                return PredicatedTarget.Context.ExecuteScalar(SqlQuery);
+                var res = PredicatedTarget.Context.ExecuteScalar(SqlQuery);
+                return deMorgan ? !(bool)res : res;
             }
 
             goto failed_to_translate;

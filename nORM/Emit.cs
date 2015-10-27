@@ -31,6 +31,7 @@ namespace nORM
     /// </summary>
     internal static class TypeOf
     {
+        public static readonly Type Bool = typeof(bool);
         public static readonly Type Int32 = typeof(int);
         public static readonly Type Int16 = typeof(short);
         public static readonly Type String = typeof(string);

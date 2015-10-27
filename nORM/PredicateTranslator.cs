@@ -102,13 +102,11 @@ namespace nORM
                     case ExpressionType.New:
                     case ExpressionType.NewArrayInit:
                     case ExpressionType.NewArrayBounds:
-                    case ExpressionType.Not:
                     case ExpressionType.NotEqual:
                     case ExpressionType.Or:
                     case ExpressionType.OrElse:
                     case ExpressionType.Parameter:
                     case ExpressionType.Power:
-                    case ExpressionType.Quote:
                     case ExpressionType.RightShift:
                     case ExpressionType.Subtract:
                     case ExpressionType.SubtractChecked:
@@ -155,7 +153,7 @@ namespace nORM
                     case ExpressionType.IsFalse:
 #warning add debug output
                         return null;
-
+                    
                     case ExpressionType.Constant:
                     default:
                         throw new InvalidProgramException($"some unknown binary operator has been passed: {e_binary.NodeType.ToString()}");
@@ -168,20 +166,61 @@ namespace nORM
             var e_unary = E as UnaryExpression;
             if (e_unary != null)
             {
-#if DEBUG
-#warning ????
-                if (e_unary.Operand == null) throw new NotImplementedException("where clause: unary expressions without operand are not supported");
-#endif
-                return ToSQL<RowContract>(e_unary.Operand, null);
+                switch (e_unary.NodeType)
+                {
+                    case ExpressionType.Not:
+                        var positive = ToSQL<RowContract>(e_unary.Operand, Row);
+                        var negative = new string[positive.Length + 2];
+                        negative[0] = "NOT(";
+                        Array.Copy(positive, 0, negative, 1, positive.Length);
+                        negative[negative.Length - 1] = ") ";
+                        return negative;
+                    case ExpressionType.Quote: return ToSQL<RowContract>(e_unary.Operand, null);
+                    default:
+#warning add debug output
+                        return null;
+                }
+
+
             }
-
-
-
 #warning add debug output
             return null;
         }
 
+        /// <summary>
+        /// Returns predicate which returns inverse result of the original one.
+        /// </summary>
+        /// <param name="E"> Original predicate. </param>
+        public static Expression InvertPredicate(Expression E)
+        {
+            var e_lambda = E as LambdaExpression;
+            if (e_lambda != null)
+            {
+                var body = InvertPredicate(e_lambda.Body);
+#warning add debug output
+                if (body == null) return null;
+                return Expression.Lambda(body, e_lambda.Parameters);
+            }
 
+            var e_unary = E as UnaryExpression;
+            if (e_unary != null)
+            {
+                if (e_unary.NodeType == ExpressionType.Quote) {
+                    var operand = InvertPredicate(e_unary.Operand);
+#warning add debug output
+                    if (operand == null) return null;
+                    return Expression.MakeUnary(e_unary.NodeType, operand, e_unary.Type);
+                }
+
+                if (e_unary.NodeType == ExpressionType.Not) return e_unary.Operand;
+            }
+
+            if (E.Type == TypeOf.Bool)
+                return Expression.MakeUnary(ExpressionType.Not, E, TypeOf.Bool);
+
+#warning add debug output
+            return null;
+        }
 
     }
 

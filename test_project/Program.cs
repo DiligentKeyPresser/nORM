@@ -28,16 +28,20 @@ namespace test_project
     {
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate("server", "normtest", "normuser", "normpass");
+            var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
+
+            Console.WriteLine("all");
+            Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));
+
+            Console.WriteLine();
+            Debugger.Break();
 
             Console.WriteLine("any");
 
             Console.WriteLine(CopyDatabase.Table1.Where(r => r.Count > 1).Any());
             Console.WriteLine(CopyDatabase.Table1.Where(r => r.Count > 10000).Any());
             Console.WriteLine(CopyDatabase.Table1.Any(r=>r.Count > 2));
-
-            Debugger.Break();
 
             Console.WriteLine();
             Console.WriteLine("lazyness test");
