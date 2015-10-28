@@ -87,7 +87,7 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(Condition);
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PredicateTranslator.PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 
@@ -134,7 +134,7 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(Condition);
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PredicateTranslator.PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 

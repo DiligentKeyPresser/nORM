@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq.Expressions;
+using System.Reflection;
 
 namespace nORM
 {
@@ -64,7 +65,13 @@ namespace nORM
 #warning does 'method' need any special processing?
 
                 var Left = ToSQL<RowContract>(e_binary.Left, Row);
+                if (Left == null)
+#warning add debug output
+                    return null;
                 var Right = ToSQL<RowContract>(e_binary.Right, Row);
+                if (Right == null)
+#warning add debug output
+                    return null;
 
                 switch (e_binary.NodeType)
                 {
@@ -193,6 +200,7 @@ namespace nORM
         /// <param name="E"> Original predicate. </param>
         public static Expression InvertPredicate(Expression E)
         {
+#warning expression type must be checked
             var e_lambda = E as LambdaExpression;
             if (e_lambda != null)
             {
@@ -222,6 +230,188 @@ namespace nORM
             return null;
         }
 
+        /// <summary>
+        /// Returns function, that represents the predicate in the current state of context. 
+        /// </summary>
+        public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
+
+        private static Expression internal_PreEvaluate(Expression E)
+        {
+            switch (E.NodeType)
+            {
+                case ExpressionType.Quote:
+                    {
+                        var e_unary = E as UnaryExpression;
+#if DEBUG
+                        if (e_unary.Method != null)
+                            throw new NotImplementedException("Quote + Method");
+#endif
+                        var new_operand = PreEvaluate(e_unary.Operand);
+                        if (new_operand == null) return null;
+                        return Expression.MakeUnary(ExpressionType.Quote, new_operand, E.Type);
+                    };
+
+                case ExpressionType.Lambda:
+                    {
+                        var e_lambda = E as LambdaExpression;
+                        var new_body = PreEvaluate(e_lambda.Body);
+                        if (new_body == null) return null;
+                        return Expression.Lambda(new_body, e_lambda.Parameters);
+                    };
+
+                case ExpressionType.Add:
+                case ExpressionType.Subtract:
+                case ExpressionType.Multiply:
+                case ExpressionType.Divide:
+                case ExpressionType.Modulo:
+                case ExpressionType.LessThan:
+                case ExpressionType.LessThanOrEqual:
+                case ExpressionType.GreaterThan:
+                case ExpressionType.GreaterThanOrEqual:
+                    {
+                        var e_binary = E as BinaryExpression;
+#if DEBUG
+                        if (e_binary.Conversion != null) throw new NotImplementedException("BinaryExpression.Conversion");
+                        if (e_binary.Method != null) throw new NotImplementedException("BinaryExpression.Method");
+                        if (e_binary.IsLifted) throw new NotImplementedException("BinaryExpression.IsLifted");
+                        if (e_binary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
+#endif
+                        var new_left = PreEvaluate(e_binary.Left);
+                        var new_right = PreEvaluate(e_binary.Right);
+                        if (new_left == null && new_right == null) return null;
+
+                        if (new_left == null) new_left = e_binary.Left;
+                        if (new_right == null) new_right = e_binary.Right;
+
+                        ConstantExpression
+                            const_left = null,
+                            const_right = null;
+
+                        if ((const_left = new_left as ConstantExpression) == null || (const_right = new_right as ConstantExpression) == null)
+                            return Expression.MakeBinary(E.NodeType, new_left, new_right);
+
+#warning can this be more efficient?
+                        return Expression.Constant(Expression.Lambda(Expression.MakeBinary(E.NodeType, new_left, new_right)).Compile().DynamicInvoke(null), E.Type);
+                    };
+
+                case ExpressionType.MemberAccess:
+                    {
+                        var e_member = E as MemberExpression;
+                        var member = e_member.Member;
+                        switch(e_member.Expression.NodeType)
+                        {
+                            case ExpressionType.Parameter:
+                                // cannot pre-evaluate lambda parameter value
+                                return null; 
+
+                            case ExpressionType.Constant:
+                                {
+                                    var field = member as FieldInfo;
+                                    if (field != null) return Expression.Constant(field.GetValue((e_member.Expression as ConstantExpression).Value));
+#if DEBUG
+                                    throw new NotImplementedException($"Member access method is not implemented: {member.GetType().Name}");
+#else
+                                    return null;
+#endif
+                                }
+                            default:
+#if DEBUG
+                                throw new NotImplementedException($"Member access target is not implemented: {e_member.Expression.NodeType}");
+#else
+                                return null;
+#endif
+                        }
+                    };
+
+
+                case ExpressionType.AddChecked:
+                case ExpressionType.MultiplyChecked:
+                case ExpressionType.SubtractChecked:
+
+                case ExpressionType.And:
+                case ExpressionType.AndAlso:
+                case ExpressionType.ArrayLength:
+                case ExpressionType.ArrayIndex:
+                case ExpressionType.Call:
+                case ExpressionType.Coalesce:
+                case ExpressionType.Conditional:
+                case ExpressionType.Convert:
+                case ExpressionType.ConvertChecked:
+                case ExpressionType.Equal:
+                case ExpressionType.ExclusiveOr:
+                case ExpressionType.Invoke:
+                case ExpressionType.LeftShift:
+                case ExpressionType.ListInit:
+                case ExpressionType.MemberInit:
+                case ExpressionType.Negate:
+                case ExpressionType.UnaryPlus:
+                case ExpressionType.NegateChecked:
+                case ExpressionType.New:
+                case ExpressionType.NewArrayInit:
+                case ExpressionType.NewArrayBounds:
+                case ExpressionType.Not:
+                case ExpressionType.NotEqual:
+                case ExpressionType.Or:
+                case ExpressionType.OrElse:
+                case ExpressionType.Parameter:
+                case ExpressionType.Power:
+                case ExpressionType.RightShift:                
+                case ExpressionType.TypeAs:
+                case ExpressionType.TypeIs:
+                case ExpressionType.Assign:
+                case ExpressionType.Block:
+                case ExpressionType.DebugInfo:
+                case ExpressionType.Decrement:
+                case ExpressionType.Dynamic:
+                case ExpressionType.Default:
+                case ExpressionType.Extension:
+                case ExpressionType.Goto:
+                case ExpressionType.Increment:
+                case ExpressionType.Index:
+                case ExpressionType.Label:
+                case ExpressionType.RuntimeVariables:
+                case ExpressionType.Loop:
+                case ExpressionType.Switch:
+                case ExpressionType.Throw:
+                case ExpressionType.Try:
+                case ExpressionType.Unbox:
+                case ExpressionType.AddAssign:
+                case ExpressionType.AndAssign:
+                case ExpressionType.DivideAssign:
+                case ExpressionType.ExclusiveOrAssign:
+                case ExpressionType.LeftShiftAssign:
+                case ExpressionType.ModuloAssign:
+                case ExpressionType.MultiplyAssign:
+                case ExpressionType.OrAssign:
+                case ExpressionType.PowerAssign:
+                case ExpressionType.RightShiftAssign:
+                case ExpressionType.SubtractAssign:
+                case ExpressionType.AddAssignChecked:
+                case ExpressionType.MultiplyAssignChecked:
+                case ExpressionType.SubtractAssignChecked:
+                case ExpressionType.PreIncrementAssign:
+                case ExpressionType.PreDecrementAssign:
+                case ExpressionType.PostIncrementAssign:
+                case ExpressionType.PostDecrementAssign:
+                case ExpressionType.TypeEqual:
+                case ExpressionType.OnesComplement:
+                case ExpressionType.IsTrue:
+                case ExpressionType.IsFalse:
+#warning add debug output
+                    return null;
+
+                case ExpressionType.Constant:
+                    // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.
+                    return E;
+
+                default:
+#if DEBUG
+                    throw new NotImplementedException($"Expression type is not implemented: {E.NodeType}");
+#else
+                    return null;
+#endif
+            }
+        } 
     }
 
 }

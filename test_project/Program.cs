@@ -31,6 +31,10 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
+            Console.WriteLine("partial evaluation");
+            int tri = 3;
+            Console.WriteLine(CopyDatabase.Table1.Any(r => r.Count > 2 % tri));
+
             Console.WriteLine("all");
             Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));
 
