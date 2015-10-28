@@ -31,6 +31,7 @@ namespace nORM
             if (e_constant != null)
             {
                 if (e_constant.Type == TypeOf.String) return new string[] { (string)e_constant.Value };
+                if (e_constant.Type == TypeOf.Bool) return new string[] { (bool)e_constant.Value ? "1 = 1 " : "1 = 0" };
                 if (e_constant.Type == TypeOf.Int32) goto to_string;
                 if (e_constant.Type == TypeOf.Int16) goto to_string;
 
@@ -246,7 +247,7 @@ namespace nORM
                         if (e_unary.Method != null)
                             throw new NotImplementedException("Quote + Method");
 #endif
-                        var new_operand = PreEvaluate(e_unary.Operand);
+                        var new_operand = internal_PreEvaluate(e_unary.Operand);
                         if (new_operand == null) return null;
                         return Expression.MakeUnary(ExpressionType.Quote, new_operand, E.Type);
                     };
@@ -254,7 +255,7 @@ namespace nORM
                 case ExpressionType.Lambda:
                     {
                         var e_lambda = E as LambdaExpression;
-                        var new_body = PreEvaluate(e_lambda.Body);
+                        var new_body = internal_PreEvaluate(e_lambda.Body);
                         if (new_body == null) return null;
                         return Expression.Lambda(new_body, e_lambda.Parameters);
                     };
@@ -268,6 +269,14 @@ namespace nORM
                 case ExpressionType.LessThanOrEqual:
                 case ExpressionType.GreaterThan:
                 case ExpressionType.GreaterThanOrEqual:
+                case ExpressionType.AndAlso:
+                case ExpressionType.OrElse:
+                case ExpressionType.Equal:
+                case ExpressionType.NotEqual:
+                case ExpressionType.Or:
+                case ExpressionType.And:
+                case ExpressionType.ExclusiveOr:
+                case ExpressionType.Power: // has not been tested
                     {
                         var e_binary = E as BinaryExpression;
 #if DEBUG
@@ -276,22 +285,56 @@ namespace nORM
                         if (e_binary.IsLifted) throw new NotImplementedException("BinaryExpression.IsLifted");
                         if (e_binary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
 #endif
-                        var new_left = PreEvaluate(e_binary.Left);
-                        var new_right = PreEvaluate(e_binary.Right);
+                        var new_left = internal_PreEvaluate(e_binary.Left);
+                        var new_right = internal_PreEvaluate(e_binary.Right);
                         if (new_left == null && new_right == null) return null;
 
                         if (new_left == null) new_left = e_binary.Left;
                         if (new_right == null) new_right = e_binary.Right;
 
-                        ConstantExpression
-                            const_left = null,
-                            const_right = null;
+                        var const_left = new_left as ConstantExpression;
+                        var const_right = new_right as ConstantExpression;
 
-                        if ((const_left = new_left as ConstantExpression) == null || (const_right = new_right as ConstantExpression) == null)
-                            return Expression.MakeBinary(E.NodeType, new_left, new_right);
+                        if (E.NodeType == ExpressionType.AndAlso)
+                        {
+                            if (const_left != null)
+                            {
+                                if ((bool)const_left.Value == false) return Expression.Constant(false);
+                                if ((bool)const_left.Value == true) return new_right;
+                            }
+                            if (const_right != null)
+                            {
+                                if ((bool)const_right.Value == false) return Expression.Constant(false);
+                                if ((bool)const_right.Value == true) return new_left;
+                            }
+                        }
+
+                        if (E.NodeType == ExpressionType.OrElse)
+                        {
+                            if (const_left != null)
+                            {
+                                if ((bool)const_left.Value == true) return Expression.Constant(true);
+                                if ((bool)const_left.Value == false) return new_right;
+                            }
+                            if (const_right != null)
+                            {
+                                if ((bool)const_right.Value == true) return Expression.Constant(true);
+                                if ((bool)const_right.Value == false) return new_left;
+                            }
+                        }
+
+                        if (E.NodeType == ExpressionType.ExclusiveOr)
+                        {
+                            if (const_left != null) if ((bool)const_left.Value == false) return new_right;
+                            if (const_right != null) if ((bool)const_right.Value == false) return new_left;
+                        }
+
+                        var newexpr = Expression.MakeBinary(E.NodeType, new_left, new_right);
+
+                        if (const_left == null || const_right == null) return newexpr;
 
 #warning can this be more efficient?
-                        return Expression.Constant(Expression.Lambda(Expression.MakeBinary(E.NodeType, new_left, new_right)).Compile().DynamicInvoke(null), E.Type);
+                        return Expression.Constant(Expression.Lambda(newexpr).Compile().DynamicInvoke(null), E.Type);
                     };
 
                 case ExpressionType.MemberAccess:
@@ -323,58 +366,85 @@ namespace nORM
                         }
                     };
 
+                case ExpressionType.Negate:
+                case ExpressionType.Not:
+                    {
+                        var e_unary = E as UnaryExpression;
+#if DEBUG
+                        if (e_unary.Method != null) throw new NotImplementedException("BinaryExpression.Method");
+                        if (e_unary.IsLifted) throw new NotImplementedException("BinaryExpression.IsLifted");
+                        if (e_unary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
+#endif
+                        var new_operand = internal_PreEvaluate(e_unary.Operand);
+                        if (new_operand == null) return null;
+
+                        var new_expression = Expression.MakeUnary(E.NodeType, new_operand, E.Type);
+
+                        var const_operand = new_operand as ConstantExpression;
+                        if (const_operand == null) return new_expression;
+
+#warning can this be more efficient?
+                        return Expression.Constant(Expression.Lambda(new_expression).Compile().DynamicInvoke(null), E.Type);
+                    }
+
+
 
                 case ExpressionType.AddChecked:
                 case ExpressionType.MultiplyChecked:
                 case ExpressionType.SubtractChecked:
+                case ExpressionType.NegateChecked:
 
-                case ExpressionType.And:
-                case ExpressionType.AndAlso:
+                case ExpressionType.Increment:
+                case ExpressionType.Decrement:
+
                 case ExpressionType.ArrayLength:
                 case ExpressionType.ArrayIndex:
                 case ExpressionType.Call:
                 case ExpressionType.Coalesce:
                 case ExpressionType.Conditional:
                 case ExpressionType.Convert:
-                case ExpressionType.ConvertChecked:
-                case ExpressionType.Equal:
-                case ExpressionType.ExclusiveOr:
+                case ExpressionType.ConvertChecked:                
                 case ExpressionType.Invoke:
                 case ExpressionType.LeftShift:
                 case ExpressionType.ListInit:
                 case ExpressionType.MemberInit:
-                case ExpressionType.Negate:
                 case ExpressionType.UnaryPlus:
-                case ExpressionType.NegateChecked:
                 case ExpressionType.New:
                 case ExpressionType.NewArrayInit:
                 case ExpressionType.NewArrayBounds:
-                case ExpressionType.Not:
-                case ExpressionType.NotEqual:
-                case ExpressionType.Or:
-                case ExpressionType.OrElse:
                 case ExpressionType.Parameter:
-                case ExpressionType.Power:
                 case ExpressionType.RightShift:                
                 case ExpressionType.TypeAs:
-                case ExpressionType.TypeIs:
-                case ExpressionType.Assign:
-                case ExpressionType.Block:
-                case ExpressionType.DebugInfo:
-                case ExpressionType.Decrement:
+                case ExpressionType.TypeIs:                
+                case ExpressionType.DebugInfo:                
                 case ExpressionType.Dynamic:
                 case ExpressionType.Default:
                 case ExpressionType.Extension:
-                case ExpressionType.Goto:
-                case ExpressionType.Increment:
                 case ExpressionType.Index:
-                case ExpressionType.Label:
                 case ExpressionType.RuntimeVariables:
-                case ExpressionType.Loop:
-                case ExpressionType.Switch:
-                case ExpressionType.Throw:
-                case ExpressionType.Try:
                 case ExpressionType.Unbox:
+                case ExpressionType.TypeEqual:
+                case ExpressionType.OnesComplement:
+                case ExpressionType.IsTrue:
+                case ExpressionType.IsFalse:
+#warning add debug output
+                    return null;
+
+#warning is that all for sure?
+                case ExpressionType.Loop:
+                case ExpressionType.Label:
+                case ExpressionType.Goto:
+                case ExpressionType.Throw:
+                case ExpressionType.Switch:
+                case ExpressionType.Block:
+                case ExpressionType.Try:
+                    throw new InvalidProgramException("A lambda expression with a statement body cannot be converted to an expression tree");
+
+#warning is that for sure?
+                case ExpressionType.AddAssignChecked:
+                case ExpressionType.MultiplyAssignChecked:
+                case ExpressionType.SubtractAssignChecked:
+                case ExpressionType.Assign:
                 case ExpressionType.AddAssign:
                 case ExpressionType.AndAssign:
                 case ExpressionType.DivideAssign:
@@ -382,23 +452,15 @@ namespace nORM
                 case ExpressionType.LeftShiftAssign:
                 case ExpressionType.ModuloAssign:
                 case ExpressionType.MultiplyAssign:
-                case ExpressionType.OrAssign:
-                case ExpressionType.PowerAssign:
                 case ExpressionType.RightShiftAssign:
                 case ExpressionType.SubtractAssign:
-                case ExpressionType.AddAssignChecked:
-                case ExpressionType.MultiplyAssignChecked:
-                case ExpressionType.SubtractAssignChecked:
+                case ExpressionType.OrAssign:
+                case ExpressionType.PowerAssign:
                 case ExpressionType.PreIncrementAssign:
                 case ExpressionType.PreDecrementAssign:
                 case ExpressionType.PostIncrementAssign:
                 case ExpressionType.PostDecrementAssign:
-                case ExpressionType.TypeEqual:
-                case ExpressionType.OnesComplement:
-                case ExpressionType.IsTrue:
-                case ExpressionType.IsFalse:
-#warning add debug output
-                    return null;
+                    throw new InvalidProgramException("An expression tree may not contain an assignment operator");
 
                 case ExpressionType.Constant:
                     // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.

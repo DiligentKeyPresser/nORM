@@ -33,7 +33,12 @@ namespace test_project
 
             Console.WriteLine("partial evaluation");
             int tri = 3;
-            Console.WriteLine(CopyDatabase.Table1.Any(r => r.Count > 2 % tri));
+            int seven = 7;
+            // "(tri ^ 2)" => UB???
+            Console.WriteLine(CopyDatabase.Table1.Any(r =>foreach (var a in "sadf") Console.WriteLine(a););
+          //  Console.WriteLine(CopyDatabase.Table1.Any(r => !(r.Count > 4) || (tri ^ 2) != (5 & seven)));
+
+            Debugger.Break();
 
             Console.WriteLine("all");
             Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));
