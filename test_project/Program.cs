@@ -39,7 +39,7 @@ namespace test_project
             int? nint = 8;
             var obj = "sad";
             // "(tri ^ 2)" => UB???
-            Console.WriteLine(CopyDatabase.Table1.Any(r => !(r.Count > 4) || obj is object)); // tri << nint??0   - isLifted
+            Console.WriteLine(CopyDatabase.Table1.Any(r => 1 > Math.Abs(6))); // tri << nint??0   - isLifted
 
             Debugger.Break();
 
