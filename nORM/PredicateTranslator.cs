@@ -237,6 +237,7 @@ namespace nORM
         /// </summary>
         public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
 
+#warning !!! >> Constant does not turn into null, this probably means that new expression always created instead of returning the same ref
         private static Expression internal_PreEvaluate(Expression E)
         {
             switch (E.NodeType)
@@ -505,8 +506,50 @@ namespace nORM
                     }
 
                 case ExpressionType.Invoke:
-                case ExpressionType.MemberInit:
+                    {
+                        var e_invoke = E as InvocationExpression;
+                        bool unchanged = true;
+
+                        var new_args = e_invoke.Arguments.Select(internal_PreEvaluate).ToArray();
+                        var new_del = internal_PreEvaluate(e_invoke.Expression);
+
+                        if (new_del == null) new_del = e_invoke.Expression;
+                        else unchanged = false;
+
+                        if (unchanged) if (new_args.Any(a => a != null)) unchanged = false;
+
+                        InvocationExpression result = null;
+                        if (unchanged) result = e_invoke;
+                        else
+                        {
+                            for (int i = 0; i < new_args.Length; i++) if (new_args[i] == null) new_args[i] = e_invoke.Arguments[i];
+                            result = Expression.Invoke(new_del, new_args);
+                        }
+
+#warning EXTRACT METHOD FROM DELEGATE AND IMPLEMENT!!!!!
+                        bool HasSideEffects = false;
+                        if (!HasSideEffects) if (new_args.All(a => a is ConstantExpression))
+#warning can this be more efficient?
+                                return Expression.Constant(Expression.Lambda(result).Compile().DynamicInvoke(null), E.Type);
+
+                        return result;
+                    }
+
                 case ExpressionType.New:
+                    {
+                        var e_new = E as NewExpression;
+                        if (e_new.Members != null)
+                            throw new NotImplementedException("ExpressionType.New, Members");
+
+                        var new_args = e_new.Arguments.Select(internal_PreEvaluate).ToArray();
+                        if (new_args.All(a => a == null)) return null;
+
+                        return Expression.New(e_new.Constructor, new_args);
+                        // creating new object cannot be turned into returning the same constant even if arguments are constants!
+                    }
+
+
+                case ExpressionType.MemberInit:                
                 case ExpressionType.Extension:
                 case ExpressionType.Index:
                 case ExpressionType.Unbox:

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 namespace test_project
 {
@@ -38,8 +39,15 @@ namespace test_project
             var arrrr = new int[] { 5, 8, 9 };
             int? nint = 8;
             var obj = "sad";
+            Func<int, bool> pred = c =>
+            {
+                nint++;
+                Console.WriteLine("1");
+                return c > 0;
+            };
             // "(tri ^ 2)" => UB???
-            Console.WriteLine(CopyDatabase.Table1.Any(r => 1 > Math.Abs(6))); // tri << nint??0   - isLifted
+            // tri << nint??0   - isLifted
+            Console.WriteLine(CopyDatabase.Table1.Any(r => new object().GetHashCode() > 5)); 
 
             Debugger.Break();
 
