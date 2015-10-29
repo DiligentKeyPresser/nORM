@@ -1,5 +1,6 @@
 ﻿using nORM;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -34,9 +35,11 @@ namespace test_project
             Console.WriteLine("partial evaluation");
             int tri = 3;
             int seven = 7;
+            var arrrr = new int[] { 5, 8, 9 };
+            int? nint = 8;
+            var obj = "sad";
             // "(tri ^ 2)" => UB???
-            Console.WriteLine(CopyDatabase.Table1.Any(r =>foreach (var a in "sadf") Console.WriteLine(a););
-          //  Console.WriteLine(CopyDatabase.Table1.Any(r => !(r.Count > 4) || (tri ^ 2) != (5 & seven)));
+            Console.WriteLine(CopyDatabase.Table1.Any(r => !(r.Count > 4) || obj is object)); // tri << nint??0   - isLifted
 
             Debugger.Break();
 

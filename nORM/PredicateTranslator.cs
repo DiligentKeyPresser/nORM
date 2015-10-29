@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
@@ -260,23 +261,31 @@ namespace nORM
                         return Expression.Lambda(new_body, e_lambda.Parameters);
                     };
 
-                case ExpressionType.Add:
-                case ExpressionType.Subtract:
-                case ExpressionType.Multiply:
-                case ExpressionType.Divide:
-                case ExpressionType.Modulo:
-                case ExpressionType.LessThan:
-                case ExpressionType.LessThanOrEqual:
-                case ExpressionType.GreaterThan:
-                case ExpressionType.GreaterThanOrEqual:
-                case ExpressionType.AndAlso:
-                case ExpressionType.OrElse:
-                case ExpressionType.Equal:
-                case ExpressionType.NotEqual:
-                case ExpressionType.Or:
-                case ExpressionType.And:
-                case ExpressionType.ExclusiveOr:
-                case ExpressionType.Power: // has not been tested
+                case ExpressionType.Coalesce: // ??
+                case ExpressionType.ArrayIndex: // []
+                case ExpressionType.LeftShift: // <<
+                case ExpressionType.RightShift: // >>
+                case ExpressionType.Add: // +
+                case ExpressionType.Subtract: // -
+                case ExpressionType.Multiply: // *
+                case ExpressionType.Divide: // /
+                case ExpressionType.Modulo: // %
+                case ExpressionType.LessThan: // <
+                case ExpressionType.LessThanOrEqual: // <=
+                case ExpressionType.GreaterThan: // >
+                case ExpressionType.GreaterThanOrEqual: // >=
+                case ExpressionType.AndAlso: // &&
+                case ExpressionType.OrElse: // ||
+                case ExpressionType.Equal: // ==
+                case ExpressionType.NotEqual: // !=
+                case ExpressionType.Or: // |
+                case ExpressionType.And: // &
+                case ExpressionType.ExclusiveOr: // ^
+#warning next ones have not been tested yet
+                case ExpressionType.Power:
+                case ExpressionType.AddChecked:
+                case ExpressionType.MultiplyChecked:
+                case ExpressionType.SubtractChecked:
                     {
                         var e_binary = E as BinaryExpression;
 #if DEBUG
@@ -366,8 +375,15 @@ namespace nORM
                         }
                     };
 
-                case ExpressionType.Negate:
-                case ExpressionType.Not:
+                case ExpressionType.Convert: // ()...
+                case ExpressionType.TypeAs: // as
+                case ExpressionType.ArrayLength: // .Length
+                case ExpressionType.Negate: // -
+                case ExpressionType.Not: // !
+#warning next ones have not been tested yet
+                case ExpressionType.UnaryPlus: // +...
+                case ExpressionType.NegateChecked:
+                case ExpressionType.ConvertChecked:
                     {
                         var e_unary = E as UnaryExpression;
 #if DEBUG
@@ -387,35 +403,83 @@ namespace nORM
                         return Expression.Constant(Expression.Lambda(new_expression).Compile().DynamicInvoke(null), E.Type);
                     }
 
+                case ExpressionType.Conditional: // ?:
+                    {
+                        var e_cond = E as ConditionalExpression;
+                        bool unchanged = true;
 
+                        var new_test = internal_PreEvaluate(e_cond.Test);
+                        if (new_test == null) new_test = e_cond.Test;
+                        else unchanged = false;
 
-                case ExpressionType.AddChecked:
-                case ExpressionType.MultiplyChecked:
-                case ExpressionType.SubtractChecked:
-                case ExpressionType.NegateChecked:
+                        var const_test = new_test as ConstantExpression;
+                        if (const_test != null)
+                        {
+                            bool test = (bool)const_test.Value;
+                            return internal_PreEvaluate(test ? e_cond.IfTrue : e_cond.IfFalse);
+                        }
+
+                        var new_true = internal_PreEvaluate(e_cond.IfTrue);
+                        if (new_true == null) new_true = e_cond.IfTrue;
+                        else unchanged = false;
+
+                        var new_false = internal_PreEvaluate(e_cond.IfFalse);
+                        if (new_false == null) new_false = e_cond.IfFalse;
+                        else unchanged = false;
+
+                        if (unchanged) return null;
+
+                        return Expression.Condition(new_test, new_true, new_false);
+                    }
+
+                case ExpressionType.NewArrayInit: // new [] {...}
+                case ExpressionType.NewArrayBounds: // new [...]
+                    {
+#warning constant case is not processed
+                        var e_init = E as NewArrayExpression;
+                        var args = e_init.Expressions.Select(e => internal_PreEvaluate(e)).ToArray();
+                        if (args.All(a => a == null)) return null;
+                        for (int i = 0; i < args.Length; i++) if (args[i] == null) args[i] = e_init.Expressions[i];
+
+                        switch (E.NodeType)
+                        {
+                            case ExpressionType.NewArrayInit: return Expression.NewArrayInit(E.Type, args);
+                            case ExpressionType.NewArrayBounds: return Expression.NewArrayBounds(E.Type, args);
+                            default: throw new InvalidProgramException("Invalid switch statement in the code.");
+                        }
+                    }
+
+                case ExpressionType.ListInit: // new () {...}
+                    {
+#warning add debug output
+#warning implement later
+                        return null;
+                    }
+
+                case ExpressionType.TypeIs: // is
+                    {
+                        var e_is = E as TypeBinaryExpression;
+                        var new_expression = internal_PreEvaluate(e_is.Expression);
+                        if (new_expression == null) return null;
+
+                        var res = Expression.TypeIs(new_expression, e_is.TypeOperand);
+
+                        var new_expression_constant = new_expression as ConstantExpression;
+                        if (new_expression_constant == null) return res;
+
+#warning this can be more efficient!!!
+                        return Expression.Constant(Expression.Lambda(res).Compile().DynamicInvoke(null), E.Type);
+                    }              
+
 
                 case ExpressionType.Increment:
                 case ExpressionType.Decrement:
 
-                case ExpressionType.ArrayLength:
-                case ExpressionType.ArrayIndex:
                 case ExpressionType.Call:
-                case ExpressionType.Coalesce:
-                case ExpressionType.Conditional:
-                case ExpressionType.Convert:
-                case ExpressionType.ConvertChecked:                
                 case ExpressionType.Invoke:
-                case ExpressionType.LeftShift:
-                case ExpressionType.ListInit:
                 case ExpressionType.MemberInit:
-                case ExpressionType.UnaryPlus:
                 case ExpressionType.New:
-                case ExpressionType.NewArrayInit:
-                case ExpressionType.NewArrayBounds:
                 case ExpressionType.Parameter:
-                case ExpressionType.RightShift:                
-                case ExpressionType.TypeAs:
-                case ExpressionType.TypeIs:                
                 case ExpressionType.DebugInfo:                
                 case ExpressionType.Dynamic:
                 case ExpressionType.Default:
@@ -430,7 +494,12 @@ namespace nORM
 #warning add debug output
                     return null;
 
+                case ExpressionType.Constant:
+                    // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.
+                    return E;
+
 #warning is that all for sure?
+#warning all the cases have not been tested yet
                 case ExpressionType.Loop:
                 case ExpressionType.Label:
                 case ExpressionType.Goto:
@@ -441,6 +510,7 @@ namespace nORM
                     throw new InvalidProgramException("A lambda expression with a statement body cannot be converted to an expression tree");
 
 #warning is that for sure?
+#warning all the cases have not been tested yet
                 case ExpressionType.AddAssignChecked:
                 case ExpressionType.MultiplyAssignChecked:
                 case ExpressionType.SubtractAssignChecked:
@@ -461,10 +531,6 @@ namespace nORM
                 case ExpressionType.PostIncrementAssign:
                 case ExpressionType.PostDecrementAssign:
                     throw new InvalidProgramException("An expression tree may not contain an assignment operator");
-
-                case ExpressionType.Constant:
-                    // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.
-                    return E;
 
                 default:
 #if DEBUG
