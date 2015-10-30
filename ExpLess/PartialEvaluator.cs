@@ -3,9 +3,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace nORM
+namespace ExpLess
 {
-    internal static class PartialEvaluator
+    public static class PartialEvaluator
     {
         public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
 
@@ -214,7 +214,7 @@ namespace nORM
                         {
                             case ExpressionType.NewArrayInit: return Expression.NewArrayInit(E.Type, args);
                             case ExpressionType.NewArrayBounds: return Expression.NewArrayBounds(E.Type, args);
-                            default: throw new InvalidProgramException("Invalid switch statement in the code.");
+                            default: throw new NotImplementedException("Invalid switch statement in the code.");
                         }
                     }
 
@@ -336,7 +336,7 @@ namespace nORM
 
 #warning is that for sure?
                 case ExpressionType.Dynamic:
-                    throw new InvalidProgramException("An expression tree may not contain a dynamic operation");
+                    throw new NotImplementedException("An expression tree may not contain a dynamic operation");
 
 #warning is that all for sure?
                 case ExpressionType.RuntimeVariables:
@@ -347,7 +347,7 @@ namespace nORM
                 case ExpressionType.Switch:
                 case ExpressionType.Block:
                 case ExpressionType.Try:
-                    throw new InvalidProgramException("A lambda expression with a statement body cannot be converted to an expression tree");
+                    throw new NotImplementedException("A lambda expression with a statement body cannot be converted to an expression tree");
 
 #warning is that for sure?
                 case ExpressionType.AddAssignChecked:
@@ -369,7 +369,7 @@ namespace nORM
                 case ExpressionType.PreDecrementAssign:
                 case ExpressionType.PostIncrementAssign:
                 case ExpressionType.PostDecrementAssign:
-                    throw new InvalidProgramException("An expression tree may not contain an assignment operator");
+                    throw new NotImplementedException("An expression tree may not contain an assignment operator");
 
 #warning unable to test next ones
                 case ExpressionType.Parameter:
@@ -386,3 +386,4 @@ namespace nORM
         }
     }
 }
+
