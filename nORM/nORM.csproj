@@ -45,6 +45,7 @@
     <Compile Include="Emit.cs" />
     <Compile Include="Materialization.cs" />
     <Compile Include="nORM.cs" />
+    <Compile Include="PartialEvaluator.cs" />
     <Compile Include="PredicateTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider.cs" />
