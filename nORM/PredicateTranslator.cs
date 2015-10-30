@@ -446,13 +446,6 @@ namespace nORM
                         }
                     }
 
-                case ExpressionType.ListInit: // new () {...}
-                    {
-#warning implement later
-                        throw new NotImplementedException("list initialization is not implemented yet");
-                        return null;
-                    }
-
                 case ExpressionType.TypeIs: // is
                     {
                         var e_is = E as TypeBinaryExpression;
@@ -539,6 +532,7 @@ namespace nORM
                     {
                         var e_new = E as NewExpression;
                         if (e_new.Members != null)
+#warning new {...}
                             throw new NotImplementedException("ExpressionType.New, Members");
 
                         var new_args = e_new.Arguments.Select(internal_PreEvaluate).ToArray();
@@ -548,13 +542,18 @@ namespace nORM
                         // creating new object cannot be turned into returning the same constant even if arguments are constants!
                     }
 
-
-                case ExpressionType.MemberInit:                
+                // this ones dont seem to be useful
+#warning implement later
                 case ExpressionType.Extension:
-                case ExpressionType.Index:
                 case ExpressionType.Unbox:
-#warning add debug output
-                    return null;
+                case ExpressionType.MemberInit: // new ...() {.. = ..}
+                case ExpressionType.ListInit: // new ...() {..., ...}
+#warning implement ExpressionType.ListInit first
+                case ExpressionType.Index: 
+                    {
+                        throw new NotImplementedException($"{E.NodeType} is not implemented yet");
+                        return null;
+                    }
 
                 case ExpressionType.Constant:
                     // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.
