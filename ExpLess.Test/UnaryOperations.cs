@@ -2,7 +2,6 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using static ExpLess.PartialEvaluator;
-using System;
 
 namespace ExpLess.Test
 {
@@ -12,15 +11,25 @@ namespace ExpLess.Test
 
         protected readonly ExpressionType exp_type;
 
+        protected OperandType prop1 { get; set; }
+
         public UnaryOpTest(ExpressionType Type)
         {
             exp_type = Type;
         }
 
+        protected Expression ParamAccessExpression() => Expression.MakeMemberAccess(Expression.Parameter(GetType()), GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance));
+
         [TestMethod]
         public virtual void CheckForConstant() => Assert.IsTrue(PreEvaluate(Expression.MakeUnary(exp_type, Expression.Constant(getConstant1()), null)) is ConstantExpression, "An operation with constant argument has not been transformed to constant expression.");
 
-#warning add test for expression with parameter
+        [TestMethod]
+        public virtual void CheckForParam()
+        {
+            var e = Expression.MakeUnary(exp_type, ParamAccessExpression(), null);
+            Assert.AreEqual(e, PreEvaluate(e), "An operation with unknown argument has been transformed to constant expression.");
+        }
+
     }
 
     public abstract class UnaryOpTest<OperandType, ResultType> : UnaryOpTest<OperandType>
@@ -29,6 +38,13 @@ namespace ExpLess.Test
 
         [TestMethod]
         public override void CheckForConstant() => Assert.IsTrue(PreEvaluate(Expression.MakeUnary(exp_type, Expression.Constant(getConstant1()), typeof(ResultType))) is ConstantExpression, "An operation with constant argument has not been transformed to constant expression.");
+
+        [TestMethod]
+        public virtual void CheckForParam()
+        {
+            var e = Expression.MakeUnary(exp_type, ParamAccessExpression(), typeof(ResultType));
+            Assert.AreEqual(e, PreEvaluate(e), "An operation with unknown argument has been transformed to constant expression.");
+        }
     }
 
     public abstract class UnaryIntOpTest : UnaryOpTest<int>
