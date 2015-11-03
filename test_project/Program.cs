@@ -47,7 +47,7 @@ namespace test_project
             };
             // "(tri ^ 2)" => UB???
             // tri << nint??0   - isLifted
-            Console.WriteLine(CopyDatabase.Table1.Any(r => new List<int>() { Capacity = 180 }.GetHashCode() > 5)); 
+           // Console.WriteLine(CopyDatabase.Table1.Any(r => new List<int>() { Capacity = 180 }.GetHashCode() > 5)); 
 
 
             Debugger.Break();
