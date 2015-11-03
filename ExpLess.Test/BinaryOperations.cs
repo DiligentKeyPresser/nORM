@@ -10,9 +10,9 @@ namespace ExpLess.Test
 
     public abstract class BinaryOpTest<OperandType>
     {
-        private readonly Expression Constants;
-        private readonly Expression ConstantInstanceFieldAccess;
-        private readonly Expression ComplexParameterized;
+        protected readonly Expression Constants;
+        protected readonly Expression ConstantInstanceFieldAccess;
+        protected readonly Expression ComplexParameterized;
         protected readonly OperandType i;
         protected OperandType prop1 { get; set; }
 
@@ -216,9 +216,39 @@ namespace ExpLess.Test
     }
 
     [TestClass]
-    public class ArrayIndexTest : BinaryOpTest
+    public class ArrayIndexTest
     {
-        public ArrayIndexTest() : base(ExpressionType.ArrayIndex) { }
+        protected readonly Expression Constants;
+        protected readonly Expression ConstantInstanceFieldAccess;
+        protected readonly Expression ComplexParameterized;
+        protected readonly int i;
+        protected int prop1 { get; set; }
+
+        public ArrayIndexTest()
+        {
+            i = 1;
+            Expression
+                c1 = Expression.Constant(new float[] { 58f, .59f, 5.7f }),
+                c2 = Expression.Constant(0),
+                f1 = Expression.MakeMemberAccess(Expression.Constant(this), GetType().GetField("i", BindingFlags.NonPublic | BindingFlags.Instance)),
+                p1 = Expression.Parameter(GetType());
+
+            Constants = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, c2);
+            ConstantInstanceFieldAccess = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, f1);
+            ComplexParameterized = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)));
+        }
+
+        [TestMethod]
+        public void CheckForConstants() => Assert.IsTrue(PreEvaluate(Constants) is ConstantExpression, "An operation with constant operands has not been transformed to constant expression.");
+
+#warning make a test for simple parameters
+        [TestMethod]
+        public virtual void CheckForComplexParameterized() => Assert.AreEqual(ComplexParameterized, PreEvaluate(ComplexParameterized), "Parameter access expression should not be modified, but the result is not reference equal to the input.");
+
+#warning make tests for deeper closure contexts
+#warning make tests for static objects
+        [TestMethod]
+        public void CheckForConstantInstanceFieldAccess() => Assert.IsTrue(PreEvaluate(ConstantInstanceFieldAccess) is ConstantExpression, "An operation with constant instance fiels access has not been transformed to constant expression.");
     }
 
     [TestClass]
