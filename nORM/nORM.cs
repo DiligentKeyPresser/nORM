@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 
+using static ExpLess.PartialEvaluator;
+
 #warning сунуть как можно больше проверок в дебаг
 #warning материализация в список - вероятно проблема. фикс должен коснуться как материализации, так и метода выполнения в контексте бд
 
@@ -87,7 +89,7 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PredicateTranslator.PreEvaluate(Condition));
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 
@@ -134,7 +136,7 @@ namespace nORM
 
         internal override Query<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PredicateTranslator.PreEvaluate(Condition));
+            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 
