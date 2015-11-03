@@ -53,6 +53,8 @@ namespace ExpLess
                         return Expression.Lambda(new_body, e_lambda.Parameters);
                     };
 
+                #region binary expressions
+
                 case ExpressionType.Coalesce: // ??
                 case ExpressionType.ArrayIndex: // []
                 case ExpressionType.LeftShift: // <<
@@ -136,6 +138,8 @@ namespace ExpLess
                         return Expression.Constant(Expression.Lambda(newexpr).Compile().DynamicInvoke(null), E.Type);
                     };
 
+                #endregion
+
                 case ExpressionType.MemberAccess:
                     {
                         var e_member = E as MemberExpression;
@@ -177,9 +181,8 @@ namespace ExpLess
                         if (e_unary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
 
                         var new_operand = internal_PreEvaluate(e_unary.Operand);
-                        if (new_operand == e_unary.Operand) return e_unary;
 
-                        var new_expression = Expression.MakeUnary(E.NodeType, new_operand, E.Type);
+                        var new_expression = new_operand == e_unary.Operand ? e_unary : Expression.MakeUnary(E.NodeType, new_operand, E.Type);
 
                         var const_operand = new_operand as ConstantExpression;
                         if (const_operand == null) return new_expression;
