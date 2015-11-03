@@ -29,7 +29,6 @@ namespace ExpLess
 
         public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
 
-#warning !!! >> Constant does not turn into null, this probably means that new expression always created instead of returning the same ref
         private static Expression internal_PreEvaluate(Expression E)
         {
             switch (E.NodeType)

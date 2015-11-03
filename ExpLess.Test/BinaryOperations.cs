@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using static ExpLess.PartialEvaluator;
+using System;
 
 namespace ExpLess.Test
 {
@@ -116,8 +117,7 @@ namespace ExpLess.Test
 
         }
     }
-
-
+    
     [TestClass]
     public class ExclusiveOrTest : BoolBinaryOpTest
     {
@@ -222,9 +222,15 @@ namespace ExpLess.Test
     }
 
     [TestClass]
-    public class CoalesceTest : BinaryOpTest
+    public class CoalesceTest : BinaryOpTest<object>
     {
         public CoalesceTest() : base(ExpressionType.Coalesce) { }
+
+        protected override object getConstant1() => "string 1";
+
+        protected override object getConstant2() => null;
+
+        protected override object getConstant3() => "wopopop";
     }
 
     [TestClass]
