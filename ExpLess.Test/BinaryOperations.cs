@@ -38,7 +38,7 @@ namespace ExpLess.Test
 
 #warning make a test for simple parameters
         [TestMethod]
-        public void CheckForComplexParameterized() => Assert.AreEqual(ComplexParameterized, PreEvaluate(ComplexParameterized), "Parameter access expression should not be modified, but the result is not reference equal to the input.");
+        public virtual void CheckForComplexParameterized() => Assert.AreEqual(ComplexParameterized, PreEvaluate(ComplexParameterized), "Parameter access expression should not be modified, but the result is not reference equal to the input.");
 
 #warning make tests for deeper closure contexts
 #warning make tests for static objects
@@ -57,11 +57,64 @@ namespace ExpLess.Test
 
     public class BoolBinaryOpTest : BinaryOpTest<bool>
     {
-        protected BoolBinaryOpTest(ExpressionType NodeType) : base(NodeType) { }
+        protected BoolBinaryOpTest(ExpressionType NodeType) : base(NodeType)
+        {
+            node_type = NodeType;
+        }
+
+        private readonly ExpressionType node_type;
 
         protected override bool getConstant1() => true;
         protected override bool getConstant2() => false;
         protected override bool getConstant3() => true;
+
+        [TestMethod]
+        public override void CheckForComplexParameterized()
+        {
+            var p1 = Expression.Parameter(GetType());
+
+            var ComplexParameterized_true_1 = Expression.MakeBinary(node_type, 
+                Expression.Constant(true), Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)));
+            var exp_true_1 = PreEvaluate(ComplexParameterized_true_1);
+            var res_true_1 = exp_true_1 is ConstantExpression;
+            var val_true_1 = res_true_1 ? (bool)(exp_true_1 as ConstantExpression).Value == true : false;
+            
+            var ComplexParameterized_false_1 = Expression.MakeBinary(node_type,
+                Expression.Constant(false), Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)));
+            var exp_false_1 = PreEvaluate(ComplexParameterized_false_1);
+            var res_false_1 = exp_false_1 is ConstantExpression;
+            var val_false_1 = res_false_1 ? (bool)(exp_false_1 as ConstantExpression).Value == true : false;
+
+            var ComplexParameterized_true_2 = Expression.MakeBinary(node_type, Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)),
+                Expression.Constant(true));
+            var exp_true_2 = PreEvaluate(ComplexParameterized_true_2);
+            var res_true_2 = exp_true_2 is ConstantExpression;
+            var val_true_2 = res_true_2 ? (bool)(exp_true_2 as ConstantExpression).Value == true : false;
+
+            var ComplexParameterized_false_2 = Expression.MakeBinary(node_type, Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)),
+                Expression.Constant(false));
+            var exp_false_2 = PreEvaluate(ComplexParameterized_false_2);
+            var res_false_2 = exp_false_2 is ConstantExpression;
+            var val_false_2 = res_false_2 ? (bool)(exp_false_2 as ConstantExpression).Value == true : false;
+
+            switch (node_type)
+            {
+                case ExpressionType.AndAlso:
+                    if (!(!res_true_1 && !res_true_2 && res_false_1 && res_false_2)) Assert.Fail("Wrong branches have been reduced.");
+                    if (val_false_1 || val_false_2) Assert.Fail("AND should not return true in one of the operands is false.");
+                    break;
+                case ExpressionType.OrElse:
+                    if (!(res_true_1 && res_true_2 && !res_false_1 && !res_false_2)) Assert.Fail("Wrong branches have been reduced.");
+                    if (!val_true_1 || !val_true_2) Assert.Fail("OR should not return false in one of the operands is true.");
+                    break;
+                case ExpressionType.ExclusiveOr:
+                    if (res_true_1 || res_true_2 || res_false_1 || res_false_2) Assert.Fail("XOR should not be reduced to constant if one of operands is expression parameter.");
+                    break;
+                default:
+                    throw new InternalTestFailureException($"Unexpected expression {node_type} in BoolBinaryOpTest.CheckForComplexParameterized() test.");
+            }
+
+        }
     }
 
 
