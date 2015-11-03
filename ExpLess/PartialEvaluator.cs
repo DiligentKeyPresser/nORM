@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -7,6 +8,25 @@ namespace ExpLess
 {
     public static class PartialEvaluator
     {
+        /// <summary>
+        /// This function converts all the input expression and returns an array with the same order
+        /// or `null` if all the elements remain the same
+        /// </summary>
+        private static Expression[] ConvertMany(ICollection<Expression> input)
+        {
+            bool anynew = false;
+#warning Emit + recursion => using call stack to store elements can allow to avoid creating redundant arrays when `anynew` remains `false` 
+            var result = new Expression[input.Count];
+            for (int i = 0; i < result.Length; i++)
+            {
+                var oldarg = input.ElementAt(i);
+                var newarg = internal_PreEvaluate(oldarg);
+                if (oldarg != newarg) anynew = true;
+                result[i] = newarg;
+            }
+            return anynew ? result : null;
+        }
+
         public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
 
 #warning !!! >> Constant does not turn into null, this probably means that new expression always created instead of returning the same ref
@@ -22,7 +42,7 @@ namespace ExpLess
                             throw new NotImplementedException("Quote + Method");
 
                         var new_operand = internal_PreEvaluate(e_unary.Operand);
-                        if (new_operand == null) return null;
+                        if (new_operand == e_unary.Operand) return e_unary;
                         return Expression.MakeUnary(ExpressionType.Quote, new_operand, E.Type);
                     };
 
@@ -30,7 +50,7 @@ namespace ExpLess
                     {
                         var e_lambda = E as LambdaExpression;
                         var new_body = internal_PreEvaluate(e_lambda.Body);
-                        if (new_body == null) return null;
+                        if (new_body == e_lambda.Body) return e_lambda;
                         return Expression.Lambda(new_body, e_lambda.Parameters);
                     };
 
@@ -69,50 +89,48 @@ namespace ExpLess
 
                         var new_left = internal_PreEvaluate(e_binary.Left);
                         var new_right = internal_PreEvaluate(e_binary.Right);
-                        if (new_left == null && new_right == null) return null;
-
-                        if (new_left == null) new_left = e_binary.Left;
-                        if (new_right == null) new_right = e_binary.Right;
 
                         var const_left = new_left as ConstantExpression;
                         var const_right = new_right as ConstantExpression;
 
-                        if (E.NodeType == ExpressionType.AndAlso)
+                        if (const_left != null || const_right != null)
                         {
-                            if (const_left != null)
+                            if (E.NodeType == ExpressionType.AndAlso)
                             {
-                                if ((bool)const_left.Value == false) return Expression.Constant(false);
-                                if ((bool)const_left.Value == true) return new_right;
+                                if (const_left != null)
+                                {
+                                    if ((bool)const_left.Value == false) return Expression.Constant(false);
+                                    if ((bool)const_left.Value == true) return new_right;
+                                }
+                                if (const_right != null)
+                                {
+                                    if ((bool)const_right.Value == false) return Expression.Constant(false);
+                                    if ((bool)const_right.Value == true) return new_left;
+                                }
                             }
-                            if (const_right != null)
+
+                            if (E.NodeType == ExpressionType.OrElse)
                             {
-                                if ((bool)const_right.Value == false) return Expression.Constant(false);
-                                if ((bool)const_right.Value == true) return new_left;
+                                if (const_left != null)
+                                {
+                                    if ((bool)const_left.Value == true) return Expression.Constant(true);
+                                    if ((bool)const_left.Value == false) return new_right;
+                                }
+                                if (const_right != null)
+                                {
+                                    if ((bool)const_right.Value == true) return Expression.Constant(true);
+                                    if ((bool)const_right.Value == false) return new_left;
+                                }
+                            }
+
+                            if (E.NodeType == ExpressionType.ExclusiveOr)
+                            {
+                                if (const_left != null) if ((bool)const_left.Value == false) return new_right;
+                                if (const_right != null) if ((bool)const_right.Value == false) return new_left;
                             }
                         }
 
-                        if (E.NodeType == ExpressionType.OrElse)
-                        {
-                            if (const_left != null)
-                            {
-                                if ((bool)const_left.Value == true) return Expression.Constant(true);
-                                if ((bool)const_left.Value == false) return new_right;
-                            }
-                            if (const_right != null)
-                            {
-                                if ((bool)const_right.Value == true) return Expression.Constant(true);
-                                if ((bool)const_right.Value == false) return new_left;
-                            }
-                        }
-
-                        if (E.NodeType == ExpressionType.ExclusiveOr)
-                        {
-                            if (const_left != null) if ((bool)const_left.Value == false) return new_right;
-                            if (const_right != null) if ((bool)const_right.Value == false) return new_left;
-                        }
-
-                        var newexpr = Expression.MakeBinary(E.NodeType, new_left, new_right);
-
+                        var newexpr = new_left == e_binary.Left && new_right == e_binary.Right ? e_binary : Expression.MakeBinary(E.NodeType, new_left, new_right);
                         if (const_left == null || const_right == null) return newexpr;
 
 #warning can this be more efficient?
@@ -127,7 +145,7 @@ namespace ExpLess
                         {
                             case ExpressionType.Parameter:
                                 // cannot pre-evaluate lambda parameter value
-                                return null;
+                                return e_member;
 
                             case ExpressionType.Constant:
                                 {
@@ -160,7 +178,7 @@ namespace ExpLess
                         if (e_unary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
 
                         var new_operand = internal_PreEvaluate(e_unary.Operand);
-                        if (new_operand == null) return null;
+                        if (new_operand == e_unary.Operand) return e_unary;
 
                         var new_expression = Expression.MakeUnary(E.NodeType, new_operand, E.Type);
 
@@ -177,28 +195,23 @@ namespace ExpLess
                         bool unchanged = true;
 
                         var new_test = internal_PreEvaluate(e_cond.Test);
-                        if (new_test == null) new_test = e_cond.Test;
-                        else unchanged = false;
+                        if (new_test != e_cond.Test) unchanged = false;
 
                         var const_test = new_test as ConstantExpression;
                         if (const_test != null)
                         {
                             bool test = (bool)const_test.Value;
                             var exptoreturn = test ? e_cond.IfTrue : e_cond.IfFalse;
-                            return internal_PreEvaluate(exptoreturn) ?? exptoreturn;
+                            return internal_PreEvaluate(exptoreturn);
                         }
 
                         var new_true = internal_PreEvaluate(e_cond.IfTrue);
-                        if (new_true == null) new_true = e_cond.IfTrue;
-                        else unchanged = false;
+                        if (new_true != e_cond.IfTrue) unchanged = false;
 
                         var new_false = internal_PreEvaluate(e_cond.IfFalse);
-                        if (new_false == null) new_false = e_cond.IfFalse;
-                        else unchanged = false;
+                        if (new_false != e_cond.IfFalse)  unchanged = false;
 
-                        if (unchanged) return null;
-
-                        return Expression.Condition(new_test, new_true, new_false);
+                        return unchanged ? e_cond : Expression.Condition(new_test, new_true, new_false);
                     }
 
                 case ExpressionType.NewArrayInit: // new [] {...}
@@ -206,10 +219,10 @@ namespace ExpLess
                     {
 #warning constant case is not processed
                         var e_init = E as NewArrayExpression;
-                        var args = e_init.Expressions.Select(internal_PreEvaluate).ToArray();
-                        if (args.All(a => a == null)) return null;
-                        for (int i = 0; i < args.Length; i++) if (args[i] == null) args[i] = e_init.Expressions[i];
+                        var args = ConvertMany(e_init.Expressions);
+                        if (args == null) return e_init;
 
+                        // these operators dont seem to be eligible for constant conversion
                         switch (E.NodeType)
                         {
                             case ExpressionType.NewArrayInit: return Expression.NewArrayInit(E.Type, args);
@@ -222,7 +235,7 @@ namespace ExpLess
                     {
                         var e_is = E as TypeBinaryExpression;
                         var new_expression = internal_PreEvaluate(e_is.Expression);
-                        if (new_expression == null) return null;
+                        if (new_expression == e_is.Expression) return e_is;
 
                         var res = Expression.TypeIs(new_expression, e_is.TypeOperand);
 
@@ -237,28 +250,18 @@ namespace ExpLess
                     {
                         var e_call = E as MethodCallExpression;
 
-                        bool unchanged = true;
+                        ICollection<Expression> new_args = ConvertMany(e_call.Arguments);
+                        bool unchanged = new_args == null;
+                        if (unchanged)
+                            new_args = e_call.Arguments;
 
-                        var new_object = e_call.Object;
-                        if (new_object != null)
-                        {
-                            new_object = internal_PreEvaluate(new_object);
-                            if (new_object == null) new_object = e_call.Object;
-                            else unchanged = false;
-                        }
-
-                        var new_args = e_call.Arguments.Select(internal_PreEvaluate).ToArray();
-                        if (unchanged) if (new_args.Any(a => a != null)) unchanged = false;
-
+                        var new_object = e_call.Object == null ? null : internal_PreEvaluate(e_call.Object);
+                        if (new_object != e_call.Object) unchanged = false;
 
                         MethodCallExpression result = null;
 
                         if (unchanged) result = e_call;
-                        else
-                        {
-                            for (int i = 0; i < new_args.Length; i++) if (new_args[i] == null) new_args[i] = e_call.Arguments[i];
-                            result = Expression.Call(new_object, e_call.Method, new_args);
-                        }
+                        else result = Expression.Call(new_object, e_call.Method, new_args);
 
 #warning IMPLEMENT!!!!!
                         bool HasSideEffects = false;
@@ -275,23 +278,19 @@ namespace ExpLess
                 case ExpressionType.Invoke:
                     {
                         var e_invoke = E as InvocationExpression;
-                        bool unchanged = true;
 
-                        var new_args = e_invoke.Arguments.Select(internal_PreEvaluate).ToArray();
+                        ICollection<Expression> new_args = ConvertMany(e_invoke.Arguments);
                         var new_del = internal_PreEvaluate(e_invoke.Expression);
 
-                        if (new_del == null) new_del = e_invoke.Expression;
-                        else unchanged = false;
+                        bool unchanged = new_args == null;
+                        if (unchanged)
+                            new_args = e_invoke.Arguments;
 
-                        if (unchanged) if (new_args.Any(a => a != null)) unchanged = false;
+                        if (new_del != e_invoke.Expression) unchanged = false;
 
                         InvocationExpression result = null;
                         if (unchanged) result = e_invoke;
-                        else
-                        {
-                            for (int i = 0; i < new_args.Length; i++) if (new_args[i] == null) new_args[i] = e_invoke.Arguments[i];
-                            result = Expression.Invoke(new_del, new_args);
-                        }
+                        else result = Expression.Invoke(new_del, new_args);
 
 #warning EXTRACT METHOD FROM DELEGATE AND IMPLEMENT!!!!!
                         bool HasSideEffects = false;
@@ -309,12 +308,11 @@ namespace ExpLess
                         if (e_new.Members != null)
 #warning new {...}
                             throw new NotImplementedException("ExpressionType.New, Members");
-
-                        var new_args = e_new.Arguments.Select(internal_PreEvaluate).ToArray();
-                        if (new_args.All(a => a == null)) return null;
-
-                        return Expression.New(e_new.Constructor, new_args);
+                        
+                        var new_args = ConvertMany(e_new.Arguments);
+                            
                         // creating new object cannot be turned into returning the same constant even if arguments are constants!
+                        return new_args == null ? e_new : Expression.New(e_new.Constructor, new_args);
                     }
 
                 // this ones dont seem to be useful
@@ -327,11 +325,9 @@ namespace ExpLess
                 case ExpressionType.Index:
                     {
                         throw new NotImplementedException($"{E.NodeType} is not implemented yet");
-                        return null;
                     }
 
                 case ExpressionType.Constant:
-                    // Higher expressions won't be reduced if null were returned, therefore we return an unchanged constant.
                     return E;
 
 #warning is that for sure?
