@@ -236,6 +236,7 @@ namespace ExpLess.Test
             Constants = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, c2);
             ConstantInstanceFieldAccess = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, f1);
             ComplexParameterized = Expression.MakeBinary(ExpressionType.ArrayIndex, c1, Expression.MakeMemberAccess(p1, GetType().GetProperty("prop1", BindingFlags.NonPublic | BindingFlags.Instance)));
+
         }
 
         [TestMethod]
