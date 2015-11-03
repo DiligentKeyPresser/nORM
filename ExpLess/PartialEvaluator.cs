@@ -89,47 +89,48 @@ namespace ExpLess
 
                         var new_left = internal_PreEvaluate(e_binary.Left);
                         var new_right = internal_PreEvaluate(e_binary.Right);
-                        if (new_left == e_binary.Left && new_right == e_binary.Right) return e_binary;
 
                         var const_left = new_left as ConstantExpression;
                         var const_right = new_right as ConstantExpression;
 
-                        if (E.NodeType == ExpressionType.AndAlso)
+                        if (const_left != null || const_right != null)
                         {
-                            if (const_left != null)
+                            if (E.NodeType == ExpressionType.AndAlso)
                             {
-                                if ((bool)const_left.Value == false) return Expression.Constant(false);
-                                if ((bool)const_left.Value == true) return new_right;
+                                if (const_left != null)
+                                {
+                                    if ((bool)const_left.Value == false) return Expression.Constant(false);
+                                    if ((bool)const_left.Value == true) return new_right;
+                                }
+                                if (const_right != null)
+                                {
+                                    if ((bool)const_right.Value == false) return Expression.Constant(false);
+                                    if ((bool)const_right.Value == true) return new_left;
+                                }
                             }
-                            if (const_right != null)
+
+                            if (E.NodeType == ExpressionType.OrElse)
                             {
-                                if ((bool)const_right.Value == false) return Expression.Constant(false);
-                                if ((bool)const_right.Value == true) return new_left;
+                                if (const_left != null)
+                                {
+                                    if ((bool)const_left.Value == true) return Expression.Constant(true);
+                                    if ((bool)const_left.Value == false) return new_right;
+                                }
+                                if (const_right != null)
+                                {
+                                    if ((bool)const_right.Value == true) return Expression.Constant(true);
+                                    if ((bool)const_right.Value == false) return new_left;
+                                }
+                            }
+
+                            if (E.NodeType == ExpressionType.ExclusiveOr)
+                            {
+                                if (const_left != null) if ((bool)const_left.Value == false) return new_right;
+                                if (const_right != null) if ((bool)const_right.Value == false) return new_left;
                             }
                         }
 
-                        if (E.NodeType == ExpressionType.OrElse)
-                        {
-                            if (const_left != null)
-                            {
-                                if ((bool)const_left.Value == true) return Expression.Constant(true);
-                                if ((bool)const_left.Value == false) return new_right;
-                            }
-                            if (const_right != null)
-                            {
-                                if ((bool)const_right.Value == true) return Expression.Constant(true);
-                                if ((bool)const_right.Value == false) return new_left;
-                            }
-                        }
-
-                        if (E.NodeType == ExpressionType.ExclusiveOr)
-                        {
-                            if (const_left != null) if ((bool)const_left.Value == false) return new_right;
-                            if (const_right != null) if ((bool)const_right.Value == false) return new_left;
-                        }
-
-                        var newexpr = Expression.MakeBinary(E.NodeType, new_left, new_right);
-
+                        var newexpr = new_left == e_binary.Left && new_right == e_binary.Right ? e_binary : Expression.MakeBinary(E.NodeType, new_left, new_right);
                         if (const_left == null || const_right == null) return newexpr;
 
 #warning can this be more efficient?
@@ -144,7 +145,7 @@ namespace ExpLess
                         {
                             case ExpressionType.Parameter:
                                 // cannot pre-evaluate lambda parameter value
-                                return null;
+                                return e_member;
 
                             case ExpressionType.Constant:
                                 {
