@@ -1,7 +1,9 @@
 ﻿using nORM;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 namespace test_project
 {
@@ -30,6 +32,25 @@ namespace test_project
         {
             var CopyDatabase = Database<ITestDB>.Inflate("federalcom", "normtest", "normuser", "normpass");
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
+
+            Console.WriteLine("partial evaluation");
+            int tri = 3;
+            int seven = 7;
+            var arrrr = new int[] { 5, 8, 9 };
+            int? nint = 8;
+            var obj = "sad";
+            Func<int, bool> pred = c =>
+            {
+                nint++;
+                Console.WriteLine("1");
+                return c > 0;
+            };
+            // "(tri ^ 2)" => UB???
+            // tri << nint??0   - isLifted
+          //  Console.WriteLine(CopyDatabase.Table1.Any(r => new List<int>() { Capacity = 180 }.GetHashCode() > 5)); 
+
+
+         //   Debugger.Break();
 
             Console.WriteLine("all");
             Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));

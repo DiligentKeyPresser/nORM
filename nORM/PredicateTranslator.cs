@@ -30,6 +30,7 @@ namespace nORM
             if (e_constant != null)
             {
                 if (e_constant.Type == TypeOf.String) return new string[] { (string)e_constant.Value };
+                if (e_constant.Type == TypeOf.Bool) return new string[] { (bool)e_constant.Value ? "1 = 1 " : "1 = 0" };
                 if (e_constant.Type == TypeOf.Int32) goto to_string;
                 if (e_constant.Type == TypeOf.Int16) goto to_string;
 
@@ -64,7 +65,13 @@ namespace nORM
 #warning does 'method' need any special processing?
 
                 var Left = ToSQL<RowContract>(e_binary.Left, Row);
+                if (Left == null)
+#warning add debug output
+                    return null;
                 var Right = ToSQL<RowContract>(e_binary.Right, Row);
+                if (Right == null)
+#warning add debug output
+                    return null;
 
                 switch (e_binary.NodeType)
                 {
@@ -193,6 +200,7 @@ namespace nORM
         /// <param name="E"> Original predicate. </param>
         public static Expression InvertPredicate(Expression E)
         {
+#warning expression type must be checked
             var e_lambda = E as LambdaExpression;
             if (e_lambda != null)
             {
@@ -221,7 +229,5 @@ namespace nORM
 #warning add debug output
             return null;
         }
-
     }
-
 }
