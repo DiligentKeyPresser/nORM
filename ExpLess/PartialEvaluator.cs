@@ -20,16 +20,14 @@ namespace ExpLess
             for (int i = 0; i < result.Length; i++)
             {
                 var oldarg = input.ElementAt(i);
-                var newarg = internal_PreEvaluate(oldarg);
+                var newarg = PreEvaluate(oldarg);
                 if (oldarg != newarg) anynew = true;
                 result[i] = newarg;
             }
             return anynew ? result : null;
         }
 
-        public static Expression PreEvaluate(Expression E) => internal_PreEvaluate(E) ?? E;
-
-        private static Expression internal_PreEvaluate(Expression E)
+        public static Expression PreEvaluate(Expression E)
         {
             switch (E.NodeType)
             {
@@ -40,7 +38,7 @@ namespace ExpLess
                         if (e_unary.Method != null)
                             throw new NotImplementedException("Quote + Method");
 
-                        var new_operand = internal_PreEvaluate(e_unary.Operand);
+                        var new_operand = PreEvaluate(e_unary.Operand);
                         if (new_operand == e_unary.Operand) return e_unary;
                         return Expression.MakeUnary(ExpressionType.Quote, new_operand, E.Type);
                     };
@@ -48,7 +46,7 @@ namespace ExpLess
                 case ExpressionType.Lambda:
                     {
                         var e_lambda = E as LambdaExpression;
-                        var new_body = internal_PreEvaluate(e_lambda.Body);
+                        var new_body = PreEvaluate(e_lambda.Body);
                         if (new_body == e_lambda.Body) return e_lambda;
                         return Expression.Lambda(new_body, e_lambda.Parameters);
                     };
@@ -88,8 +86,8 @@ namespace ExpLess
                         if (e_binary.IsLifted) throw new NotImplementedException("BinaryExpression.IsLifted");
                         if (e_binary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
 
-                        var new_left = internal_PreEvaluate(e_binary.Left);
-                        var new_right = internal_PreEvaluate(e_binary.Right);
+                        var new_left = PreEvaluate(e_binary.Left);
+                        var new_right = PreEvaluate(e_binary.Right);
 
                         var const_left = new_left as ConstantExpression;
                         var const_right = new_right as ConstantExpression;
@@ -180,7 +178,7 @@ namespace ExpLess
                         if (e_unary.IsLifted) throw new NotImplementedException("BinaryExpression.IsLifted");
                         if (e_unary.IsLiftedToNull) throw new NotImplementedException("BinaryExpression.IsLiftedToNull");
 
-                        var new_operand = internal_PreEvaluate(e_unary.Operand);
+                        var new_operand = PreEvaluate(e_unary.Operand);
 
                         var new_expression = new_operand == e_unary.Operand ? e_unary : Expression.MakeUnary(E.NodeType, new_operand, E.Type);
 
@@ -196,7 +194,7 @@ namespace ExpLess
                         var e_cond = E as ConditionalExpression;
                         bool unchanged = true;
 
-                        var new_test = internal_PreEvaluate(e_cond.Test);
+                        var new_test = PreEvaluate(e_cond.Test);
                         if (new_test != e_cond.Test) unchanged = false;
 
                         var const_test = new_test as ConstantExpression;
@@ -204,13 +202,13 @@ namespace ExpLess
                         {
                             bool test = (bool)const_test.Value;
                             var exptoreturn = test ? e_cond.IfTrue : e_cond.IfFalse;
-                            return internal_PreEvaluate(exptoreturn);
+                            return PreEvaluate(exptoreturn);
                         }
 
-                        var new_true = internal_PreEvaluate(e_cond.IfTrue);
+                        var new_true = PreEvaluate(e_cond.IfTrue);
                         if (new_true != e_cond.IfTrue) unchanged = false;
 
-                        var new_false = internal_PreEvaluate(e_cond.IfFalse);
+                        var new_false = PreEvaluate(e_cond.IfFalse);
                         if (new_false != e_cond.IfFalse)  unchanged = false;
 
                         return unchanged ? e_cond : Expression.Condition(new_test, new_true, new_false);
@@ -236,7 +234,7 @@ namespace ExpLess
                 case ExpressionType.TypeIs: // is
                     {
                         var e_is = E as TypeBinaryExpression;
-                        var new_expression = internal_PreEvaluate(e_is.Expression);
+                        var new_expression = PreEvaluate(e_is.Expression);
                         if (new_expression == e_is.Expression) return e_is;
 
                         var res = Expression.TypeIs(new_expression, e_is.TypeOperand);
@@ -257,7 +255,7 @@ namespace ExpLess
                         if (unchanged)
                             new_args = e_call.Arguments;
 
-                        var new_object = e_call.Object == null ? null : internal_PreEvaluate(e_call.Object);
+                        var new_object = e_call.Object == null ? null : PreEvaluate(e_call.Object);
                         if (new_object != e_call.Object) unchanged = false;
 
                         MethodCallExpression result = null;
@@ -282,7 +280,7 @@ namespace ExpLess
                         var e_invoke = E as InvocationExpression;
 
                         ICollection<Expression> new_args = ConvertMany(e_invoke.Arguments);
-                        var new_del = internal_PreEvaluate(e_invoke.Expression);
+                        var new_del = PreEvaluate(e_invoke.Expression);
 
                         bool unchanged = new_args == null;
                         if (unchanged)
