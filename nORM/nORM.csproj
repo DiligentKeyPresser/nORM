@@ -48,6 +48,8 @@
     <Compile Include="PredicateTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider.cs" />
+    <Compile Include="SqlConstructor\Interface.cs" />
+    <Compile Include="SqlConstructor\TSQL.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExpLess\ExpLess.csproj">
