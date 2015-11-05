@@ -12,6 +12,11 @@ namespace nORM
             private volatile WeakReference<string> sql_string = null;
             private readonly object sql_cache_sync = new object();
 
+            protected void ResetCache()
+            {
+                lock (sql_cache_sync) sql_string = null;
+            }
+
             public string GetText()
             {
                 lock (sql_cache_sync)
@@ -38,7 +43,7 @@ namespace nORM
 
         internal abstract class SelectQuery: Query
         {
-
+            public abstract void AddWhereClause(string clause);
         }
     }
 }
