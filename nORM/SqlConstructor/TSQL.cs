@@ -76,16 +76,26 @@ namespace nORM
                 return builder.ToString();
             }
 
-#warning the logic is a bit wierd
-            public override void TurnIntoCount() { fields = new string[] { "COUNT(*)" }; }
+            public override SelectQuery MakeCount()
+            {
+                var clone = Clone() as TSQLSelectQuery;
+                clone.fields = new string[] { "COUNT(*)" };
+                return clone;
+            }
 
-            public override void TurnIntoLongCount() { fields = new string[] { "COUNT_BIG(*)" }; }
+            public override SelectQuery MakeLongCount()
+            {
+                var clone = Clone() as TSQLSelectQuery;
+                clone.fields = new string[] { "COUNT_BIG(*)" };
+                return clone;
+            }
 
             public override SelectQuery MakeAny()
             {
-                var ones = Clone() as TSQLSelectQuery;
-                ones.fields = new string[] { "TOP 1 1 AS P" };
-                return new TSQLSelectQuery(ones.ToString(), new string[] { "CAST(COUNT(*) AS BIT)" }, "T");
+#warning interference with TOP statement
+                var clone = Clone() as TSQLSelectQuery;
+                clone.fields = new string[] { "TOP 1 1 AS P" };
+                return new TSQLSelectQuery(clone.ToString(), new string[] { "CAST(COUNT(*) AS BIT)" }, "T");
             }
         }
     }

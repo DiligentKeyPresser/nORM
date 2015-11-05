@@ -12,7 +12,8 @@ namespace nORM
 {
 #warning непонятно, нужен ли такой тип
     internal abstract class DatabaseRow { }
-    
+
+#warning do we need this class?
     /// <summary>
     /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
     /// </summary>
@@ -47,7 +48,8 @@ namespace nORM
         {
             Expression = Expression.Constant(this);
         }
-        internal virtual RowSource<RowContract> MakeWhere(Expression Condition)
+
+        internal RowSource<RowContract> MakeWhere(Expression Condition)
         {
             var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PreEvaluate(Condition));
 #warning add Debug output
@@ -61,6 +63,7 @@ namespace nORM
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
     {
+        // known column list
         private static readonly string[] selection_list;
 
         static Table()

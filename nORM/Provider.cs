@@ -232,17 +232,15 @@ namespace nORM
 
                 var intermediate = TargetObject.MakeWhere(predicate);
                 if (intermediate == null) goto failed_to_translate;
-                PredicatedTarget = intermediate.theQuery; // already cloned
+                PredicatedTarget = intermediate.theQuery;
             }
             else
-                PredicatedTarget = TargetObject.theQuery.Clone();
+                PredicatedTarget = TargetObject.theQuery;
 
             if (isCount || isAny)
             {// these functions entirely replace selection list
-
-                if (isLongCount) PredicatedTarget.TurnIntoLongCount();
-                else if (isCount) PredicatedTarget.TurnIntoCount();
-#warning interference with TOP statement
+                if (isLongCount) PredicatedTarget = PredicatedTarget.MakeLongCount();
+                else if (isCount) PredicatedTarget = PredicatedTarget.MakeCount();
                 else if (isAny) PredicatedTarget = PredicatedTarget.MakeAny();
 
                 var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.ToString());

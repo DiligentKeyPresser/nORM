@@ -49,9 +49,9 @@ namespace nORM
 
             public abstract void AddWhereClause(string clause);
 
-            public abstract void TurnIntoCount();
+            public abstract SelectQuery MakeCount();
 
-            public abstract void TurnIntoLongCount();
+            public abstract SelectQuery MakeLongCount();
 
             public abstract SelectQuery MakeAny(); 
         }
