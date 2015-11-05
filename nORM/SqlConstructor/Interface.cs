@@ -1,5 +1,7 @@
 ﻿using System;
 
+// these classes dont care about security. A calling code should perform all the security checks.
+
 namespace nORM
 {
     namespace SQL
@@ -17,7 +19,7 @@ namespace nORM
                 lock (sql_cache_sync) sql_string = null;
             }
 
-            public string GetText()
+            public override string ToString()
             {
                 lock (sql_cache_sync)
                 {
@@ -43,7 +45,15 @@ namespace nORM
 
         internal abstract class SelectQuery: Query
         {
+            public abstract SelectQuery Clone();
+
             public abstract void AddWhereClause(string clause);
+
+            public abstract void TurnIntoCount();
+
+            public abstract void TurnIntoLongCount();
+
+            public abstract SelectQuery MakeAny(); 
         }
     }
 }

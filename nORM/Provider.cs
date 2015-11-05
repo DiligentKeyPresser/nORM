@@ -1,4 +1,5 @@
-﻿using System;
+﻿using nORM.SQL;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -223,51 +224,28 @@ namespace nORM
             try_to_translate:
 
             // if passed scalar function is presicated then we have to use WHERE to filter input rows
-            RowSource<SourceRowContract> PredicatedTarget = null;
+            SelectQuery PredicatedTarget = null;
             if (isPredicatedScalar)
             {
                 var predicate = deMorgan ? PredicateTranslator.InvertPredicate(mc_expr.Arguments[1]) : mc_expr.Arguments[1];
                 if (predicate == null) goto failed_to_translate;
 
-                PredicatedTarget = TargetObject.MakeWhere(predicate);
-                if (PredicatedTarget == null) goto failed_to_translate;
+                var intermediate = TargetObject.MakeWhere(predicate);
+                if (intermediate == null) goto failed_to_translate;
+                PredicatedTarget = intermediate.theQuery; // already cloned
             }
             else
-                PredicatedTarget = TargetObject;
+                PredicatedTarget = TargetObject.theQuery.Clone();
 
             if (isCount || isAny)
             {// these functions entirely replace selection list
 
-                // we have to figure out what's our new selection clause
-                string NewSelectList = null;
-                if (isLongCount) NewSelectList = "COUNT_BIG(*) ";
-                else if (isCount) NewSelectList = "COUNT(*) ";
+                if (isLongCount) PredicatedTarget.TurnIntoLongCount();
+                else if (isCount) PredicatedTarget.TurnIntoCount();
 #warning interference with TOP statement
-                else if (isAny) NewSelectList = "TOP 1 1 AS P ";
+                else if (isAny) PredicatedTarget = PredicatedTarget.MakeAny();
 
-                // now we have to modify our query
-                var select_list_length = PredicatedTarget.SelectListLength;
-                var select_list_start = PredicatedTarget.SelectListStart;
-                var select_list_end = select_list_start + select_list_length;
-
-                var old_sql_query = PredicatedTarget.GetSQLArray();
-                var new_sql_query = new string[old_sql_query.Length + 3 - select_list_length];
-
-                Array.Copy(old_sql_query, new_sql_query, select_list_start);
-                new_sql_query[select_list_start] = NewSelectList;
-                Array.Copy(old_sql_query, select_list_end, new_sql_query, select_list_start + 1, old_sql_query.Length - select_list_end);
-
-                if (isAny)
-                {// a few more things to do
-                    old_sql_query = new_sql_query;
-                    new_sql_query = new string[old_sql_query.Length + 2];
-                    new_sql_query[0] = "SELECT CAST(COUNT(*) AS BIT) FROM (";
-                    Array.Copy(old_sql_query, 0, new_sql_query, 1, old_sql_query.Length);
-                    new_sql_query[old_sql_query.Length + 1] = ") AS T";
-                }
-
-                var SqlQuery = string.Concat(new_sql_query);
-                var res = PredicatedTarget.Context.ExecuteScalar(SqlQuery);
+                var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.ToString());
                 return deMorgan ? !(bool)res : res;
             }
 

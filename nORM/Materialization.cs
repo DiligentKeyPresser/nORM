@@ -9,7 +9,7 @@ namespace nORM
     {
 #warning IEnumerator would be better
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private IEnumerable<RowContract> ExecuteInstant() => Context.ExecuteContract<RowContract>(GetSQL());
+        private IEnumerable<RowContract> ExecuteInstant() => Context.ExecuteContract<RowContract>(theQuery.ToString());
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerable<RowContract> ExecuteDeferred() {
