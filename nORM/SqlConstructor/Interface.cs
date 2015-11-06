@@ -14,11 +14,6 @@ namespace nORM
             private volatile WeakReference<string> sql_string = null;
             private readonly object sql_cache_sync = new object();
 
-            protected void ResetCache()
-            {
-                lock (sql_cache_sync) sql_string = null;
-            }
-
             public override string ToString()
             {
                 lock (sql_cache_sync)
@@ -45,9 +40,9 @@ namespace nORM
 
         internal abstract class SelectQuery: Query
         {
-            public abstract SelectQuery Clone();
+            protected abstract SelectQuery Clone();
 
-            public abstract void AddWhereClause(string clause);
+            public abstract SelectQuery Where(string clause);
 
             public abstract SelectQuery MakeCount();
 

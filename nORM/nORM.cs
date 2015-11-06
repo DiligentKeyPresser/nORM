@@ -55,8 +55,7 @@ namespace nORM
 #warning add Debug output
             if (sql_predicate == null) return null;
 
-            var NewQuery = theQuery.Clone();
-            NewQuery.AddWhereClause(string.Concat(sql_predicate));
+            var NewQuery = theQuery.Where(string.Concat(sql_predicate));
             return new RowSource<RowContract>(Context, NewQuery);
         }
     }

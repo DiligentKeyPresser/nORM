@@ -12,10 +12,7 @@ namespace nORM
             private string[] fields;
             private string[] where;
 
-            public override SelectQuery Clone()
-            {
-                return new TSQLSelectQuery(source, fields, source_alias) { where = where };
-            }
+            protected override SelectQuery Clone() => new TSQLSelectQuery(source, fields, source_alias) { where = where };
 
             public TSQLSelectQuery(string source, string[] fields, string SourceAlias)
             {
@@ -25,15 +22,16 @@ namespace nORM
                 source_alias = SourceAlias;
             }
 
-            public override void AddWhereClause(string clause)
+            public override SelectQuery Where(string clause)
             {
-                ResetCache();
+                var clone = Clone() as TSQLSelectQuery;
 
                 var new_where = new string[where.Length + 1];
                 Array.Copy(where, new_where, where.Length);
                 new_where[where.Length] = clause;
 
-                where = new_where; 
+                clone.where = new_where;
+                return clone;
             }
 
             protected override string Build()
