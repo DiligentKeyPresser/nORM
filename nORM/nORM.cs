@@ -59,13 +59,14 @@ namespace nORM
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
     {
-        // known column list
-        private static readonly string[] selection_list;
+        private static readonly FieldAttribute[] FieldAttributes;
+
+        private static string[] BuildSelectionList(DatabaseContext ConnectionContext) => FieldAttributes.Select(a => ConnectionContext.QueryFactory.EscapeIdentifier(null, a.ColumnName)).ToArray();
 
         static Table()
         {
-            selection_list = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
-                .Select(p => (Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ColumnName).ToArray();
+            FieldAttributes = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
+                .Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
         }
 
         /// <summary>
@@ -78,9 +79,9 @@ namespace nORM
         /// Вручную не вызывается нигде.
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, string TableName)
-            : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, selection_list, null))
+            : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, BuildSelectionList(ConnectionContext), null))
         {
-            Name = TableName;
+            Name = TableName;            
         }
     }
     /*

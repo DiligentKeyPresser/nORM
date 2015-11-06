@@ -54,6 +54,8 @@ namespace nORM
         internal interface IQueryFactory
         {
             SelectQuery Select(string source, string[] fields, string SourceAlias);
+
+            string EscapeIdentifier(string schema, string name);
         }
     }
 }

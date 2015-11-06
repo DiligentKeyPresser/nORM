@@ -13,6 +13,22 @@ namespace nORM
             #endregion
 
             public SelectQuery Select(string source, string[] fields, string SourceAlias) => new TSQLSelectQuery(source, fields, SourceAlias);
+
+            public string EscapeIdentifier(string schema, string name)
+            {
+                var builder = new StringBuilder();
+
+                builder.Append("[");
+                if (!string.IsNullOrEmpty(schema))
+                {
+                    builder.Append(schema);
+                    builder.Append("].[");
+                }
+                builder.Append(name);
+                builder.Append("]");
+
+                return builder.ToString();
+            }
         }
 
         internal sealed class TSQLSelectQuery : SelectQuery

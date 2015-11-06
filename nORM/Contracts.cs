@@ -46,13 +46,7 @@ namespace nORM
         public TableAttribute(string Name)
         {
             TableName = Name;
-            SchemaName = "dbo";
-        }
-        
-        internal string GetFullTableName()
-        {
-#warning StringBuilder
-            return string.Format("[{0}].[{1}]", SchemaName, TableName);
+            SchemaName = string.Empty;
         }
     }
 

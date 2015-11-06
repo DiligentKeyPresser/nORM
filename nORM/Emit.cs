@@ -1,4 +1,5 @@
-﻿using System;
+﻿using nORM.SQL;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -43,7 +44,7 @@ namespace nORM
         public static readonly Type Queryable = typeof(Queryable);
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
-
+        public static readonly Type IQueryFactory = typeof(IQueryFactory);
 
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
@@ -120,9 +121,15 @@ namespace nORM
 
                 var field = ClassBuilder.DefineField("__table_" + TableProperty.Name, TableProperty.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
                 
-                consgen.Emit(OpCodes.Ldarg_0); // для stfld
-                consgen.Emit(OpCodes.Ldarg_0); // для конструктора
-                consgen.Emit(OpCodes.Ldstr, TAttr.GetFullTableName());
+                consgen.Emit(OpCodes.Ldarg_0); // this для stfld
+                consgen.Emit(OpCodes.Ldarg_0); // this для конструктора
+                consgen.Emit(OpCodes.Ldarg_0); // this для Ldfld
+
+                consgen.Emit(OpCodes.Ldfld, TypeOf.DatabaseContext.GetField(nameof(DatabaseContext.QueryFactory), BindingFlags.Instance | BindingFlags.NonPublic)); // this для EscapeIdentifier
+                consgen.Emit(OpCodes.Ldstr, TAttr.SchemaName);
+                consgen.Emit(OpCodes.Ldstr, TAttr.TableName);
+                consgen.Emit(OpCodes.Callvirt, TypeOf.IQueryFactory.GetMethod(nameof(IQueryFactory.EscapeIdentifier)));
+                                
                 consgen.Emit(OpCodes.Newobj, Tableconstructor);
                 consgen.Emit(OpCodes.Stfld, field);
 
