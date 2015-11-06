@@ -50,5 +50,10 @@ namespace nORM
 
             public abstract SelectQuery MakeAny(); 
         }
+
+        internal interface IQueryFactory
+        {
+            SelectQuery Select(string source, string[] fields, string SourceAlias);
+        }
     }
 }

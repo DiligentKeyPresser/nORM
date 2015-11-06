@@ -5,6 +5,16 @@ namespace nORM
 {
     namespace SQL
     {
+        internal sealed class TSQLQueryFactory : IQueryFactory
+        {
+            #region Singleton
+            private TSQLQueryFactory() { }
+            public static TSQLQueryFactory Singleton { get; } = new TSQLQueryFactory();
+            #endregion
+
+            public SelectQuery Select(string source, string[] fields, string SourceAlias) => new TSQLSelectQuery(source, fields, SourceAlias);
+        }
+
         internal sealed class TSQLSelectQuery : SelectQuery
         {
             private readonly string source;
@@ -14,7 +24,7 @@ namespace nORM
 
             protected override SelectQuery Clone() => new TSQLSelectQuery(source, fields, source_alias) { where = where };
 
-            public TSQLSelectQuery(string source, string[] fields, string SourceAlias)
+            internal TSQLSelectQuery(string source, string[] fields, string SourceAlias)
             {
                 this.source = source;
                 this.fields = fields;

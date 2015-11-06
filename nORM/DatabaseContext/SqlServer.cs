@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using nORM.SQL;
 
 namespace nORM
 {
     /// <summary>
-    /// Represents a connection string to SQL Server database.
+    /// Represents a connection to an SQL Server database.
     /// </summary>
     public sealed class SqlServerConnector : Connector
     {
@@ -55,5 +56,7 @@ namespace nORM
                 }
             }
         }
+
+        internal override IQueryFactory GetQueryFactory() => TSQLQueryFactory.Singleton;
     }
 }

@@ -14,9 +14,6 @@ namespace nORM
     internal abstract class DatabaseRow { }
 
 #warning do we need this class?
-    /// <summary>
-    /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
-    /// </summary>
     public abstract class RowSource
     {
         internal readonly SelectQuery theQuery;
@@ -81,7 +78,7 @@ namespace nORM
         /// Вручную не вызывается нигде.
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, string TableName)
-            : base(ConnectionContext, new TSQLSelectQuery(TableName, selection_list, null))
+            : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, selection_list, null))
         {
             Name = TableName;
         }
