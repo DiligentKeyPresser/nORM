@@ -30,7 +30,7 @@ namespace test_project
     {
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnectionProvider("federalcom", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             Console.WriteLine("partial evaluation");

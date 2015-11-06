@@ -35,7 +35,7 @@ namespace nORM
         public static readonly Type Int32 = typeof(int);
         public static readonly Type Int16 = typeof(short);
         public static readonly Type String = typeof(string);
-        public static readonly Type ConnectionProvider = typeof(ConnectionProvider);
+        public static readonly Type Connector = typeof(Connector);
         public static readonly Type DatabaseContext = typeof(DatabaseContext);
         public static readonly Type DatabaseRow = typeof(DatabaseRow);
         public static readonly Type TableAttribute = typeof(TableAttribute);
@@ -48,7 +48,7 @@ namespace nORM
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>
-        public static readonly Type[] DBContextArgumentSet = new Type[] { ConnectionProvider };
+        public static readonly Type[] DBContextArgumentSet = new Type[] { Connector };
 
         /// <summary>
         /// Массив типов аргументов конструктора таблицы
@@ -146,7 +146,7 @@ namespace nORM
             ProxyType = ClassBuilder.CreateType();
         }
 
-        public static DbContract Inflate(ConnectionProvider Connection)
+        public static DbContract Inflate(Connector Connection)
         {
             return Activator.CreateInstance(ProxyType, Connection) as DbContract;
         }
