@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Contracts.cs" />
-    <Compile Include="DatabaseContext.cs" />
+    <Compile Include="DatabaseContext\DatabaseContext.cs" />
     <Compile Include="Emit.cs" />
     <Compile Include="Materialization.cs" />
     <Compile Include="nORM.cs" />
