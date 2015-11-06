@@ -1,4 +1,5 @@
-﻿using System;
+﻿using nORM.SQL;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -35,6 +36,7 @@ namespace nORM
         public static readonly Type Int32 = typeof(int);
         public static readonly Type Int16 = typeof(short);
         public static readonly Type String = typeof(string);
+        public static readonly Type Connector = typeof(Connector);
         public static readonly Type DatabaseContext = typeof(DatabaseContext);
         public static readonly Type DatabaseRow = typeof(DatabaseRow);
         public static readonly Type TableAttribute = typeof(TableAttribute);
@@ -42,12 +44,12 @@ namespace nORM
         public static readonly Type Queryable = typeof(Queryable);
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
-
+        public static readonly Type IQueryFactory = typeof(IQueryFactory);
 
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>
-        public static readonly Type[] DBContextArgumentSet = new Type[] { String, String, String, String };
+        public static readonly Type[] DBContextArgumentSet = new Type[] { Connector };
 
         /// <summary>
         /// Массив типов аргументов конструктора таблицы
@@ -98,11 +100,8 @@ namespace nORM
             // base constructor
             // this
             consgen.Emit(OpCodes.Ldarg_0);
-            // 4 arguments
+            // 1 argument
             consgen.Emit(OpCodes.Ldarg_1);
-            consgen.Emit(OpCodes.Ldarg_2);
-            consgen.Emit(OpCodes.Ldarg_3);
-            consgen.Emit(OpCodes.Ldarg_S, (byte)4);
             consgen.Emit(OpCodes.Call, BaseConstructor);
 
             // генерируем свойства - таблицы
@@ -122,9 +121,15 @@ namespace nORM
 
                 var field = ClassBuilder.DefineField("__table_" + TableProperty.Name, TableProperty.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
                 
-                consgen.Emit(OpCodes.Ldarg_0); // для stfld
-                consgen.Emit(OpCodes.Ldarg_0); // для конструктора
-                consgen.Emit(OpCodes.Ldstr, TAttr.GetFullTableName());
+                consgen.Emit(OpCodes.Ldarg_0); // this для stfld
+                consgen.Emit(OpCodes.Ldarg_0); // this для конструктора
+                consgen.Emit(OpCodes.Ldarg_0); // this для Ldfld
+
+                consgen.Emit(OpCodes.Ldfld, TypeOf.DatabaseContext.GetField(nameof(DatabaseContext.QueryFactory), BindingFlags.Instance | BindingFlags.NonPublic)); // this для EscapeIdentifier
+                consgen.Emit(OpCodes.Ldstr, TAttr.SchemaName);
+                consgen.Emit(OpCodes.Ldstr, TAttr.TableName);
+                consgen.Emit(OpCodes.Callvirt, TypeOf.IQueryFactory.GetMethod(nameof(IQueryFactory.EscapeIdentifier)));
+                                
                 consgen.Emit(OpCodes.Newobj, Tableconstructor);
                 consgen.Emit(OpCodes.Stfld, field);
 
@@ -148,9 +153,9 @@ namespace nORM
             ProxyType = ClassBuilder.CreateType();
         }
 
-        public static DbContract Inflate(string host, string database, string user, string password)
+        public static DbContract Inflate(Connector Connection)
         {
-            return Activator.CreateInstance(ProxyType, host, database, user, password) as DbContract;
+            return Activator.CreateInstance(ProxyType, Connection) as DbContract;
         }
     }
 

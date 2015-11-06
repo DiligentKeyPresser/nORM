@@ -14,9 +14,6 @@ namespace nORM
     internal abstract class DatabaseRow { }
 
 #warning do we need this class?
-    /// <summary>
-    /// Служебный класс, способный представлять любой SELECT к базе данных, возвращающий таблицу
-    /// </summary>
     public abstract class RowSource
     {
         internal readonly SelectQuery theQuery;
@@ -51,7 +48,7 @@ namespace nORM
 
         internal RowSource<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PreEvaluate(Condition));
+            var sql_predicate = Context.QueryFactory.CreatePredicate<RowContract>(PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 
@@ -62,13 +59,14 @@ namespace nORM
 
     public sealed class Table<RowContract> : RowSource<RowContract> 
     {
-        // known column list
-        private static readonly string[] selection_list;
+        private static readonly FieldAttribute[] FieldAttributes;
+
+        private static string[] BuildSelectionList(DatabaseContext ConnectionContext) => FieldAttributes.Select(a => ConnectionContext.QueryFactory.EscapeIdentifier(null, a.ColumnName)).ToArray();
 
         static Table()
         {
-            selection_list = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
-                .Select(p => (Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ColumnName).ToArray();
+            FieldAttributes = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
+                .Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
         }
 
         /// <summary>
@@ -81,9 +79,9 @@ namespace nORM
         /// Вручную не вызывается нигде.
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, string TableName)
-            : base(ConnectionContext, new TSQLSelectQuery(TableName, selection_list, null))
+            : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, BuildSelectionList(ConnectionContext), null))
         {
-            Name = TableName;
+            Name = TableName;            
         }
     }
     /*

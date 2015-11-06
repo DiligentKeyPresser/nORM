@@ -1,50 +1,43 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Runtime.CompilerServices;
+using nORM.SQL;
 
 namespace nORM
 {
-    /// <summary> Обработчик события создания текста SQL команды. Предназначается для мониторинга работы оболочки. </summary>
-    /// <param name="CommandText"> Текст созданной команды </param>
-    public delegate void BasicCommandHandler(string CommandText);
-
-    internal abstract class DatabaseContext : IDatabase
+    /// <summary>
+    /// Represents a connection to an SQL Server database.
+    /// </summary>
+    public sealed class SqlServerConnector : Connector
     {
         public string Host { get; }
+
         public string Database { get; }
 
         private readonly string ConnectionString;
 
-        public event BasicCommandHandler BeforeCommandExecute;
-
-        internal DatabaseContext(string host, string database, string user, string password)
+        public SqlServerConnector(string host, string database, string user, string password)
         {
             Host = host;
             Database = database;
             ConnectionString = string.Format("Data Source={0};Initial Catalog={1};Persist Security Info=True;User ID={2};Password={3};", host, database, user, password);
         }
 
-        internal object ExecuteScalar(string Query)
+        internal override object ExecuteScalar(string Query)
         {
             using (var connection = new SqlConnection(ConnectionString))
             using (var command = new SqlCommand(Query, connection))
             {
-                if (BeforeCommandExecute != null) BeforeCommandExecute(Query);
-
                 connection.Open();
                 return command.ExecuteScalar();
             }
         }
 
-#warning IEnumerator would be better
-        internal IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
+        internal override IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             using (var connection = new SqlConnection(ConnectionString))
             using (var command = new SqlCommand(Query, connection))
             {
-                if (BeforeCommandExecute != null) BeforeCommandExecute(Query);
-
                 connection.Open();
                 using (var reader = command.ExecuteReader())
                 {
@@ -64,8 +57,6 @@ namespace nORM
             }
         }
 
-#warning IEnumerator would be better
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
+        internal override IQueryFactory GetQueryFactory() => TSQLQueryFactory.Singleton;
     }
 }

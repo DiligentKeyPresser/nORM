@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 
 // these classes dont care about security. A calling code should perform all the security checks.
 
@@ -49,6 +50,15 @@ namespace nORM
             public abstract SelectQuery MakeLongCount();
 
             public abstract SelectQuery MakeAny(); 
+        }
+
+        internal interface IQueryFactory
+        {
+            SelectQuery Select(string source, string[] fields, string SourceAlias);
+
+            string EscapeIdentifier(string schema, string name);
+
+            string[] CreatePredicate<RowContract>(Expression E);
         }
     }
 }
