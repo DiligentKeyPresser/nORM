@@ -48,7 +48,7 @@ namespace nORM
 
         internal RowSource<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = PredicateTranslator.TranslatePredicate<RowContract>(PreEvaluate(Condition));
+            var sql_predicate = Context.QueryFactory.CreatePredicate<RowContract>(PreEvaluate(Condition));
 #warning add Debug output
             if (sql_predicate == null) return null;
 

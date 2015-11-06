@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 
 // these classes dont care about security. A calling code should perform all the security checks.
 
@@ -56,6 +57,8 @@ namespace nORM
             SelectQuery Select(string source, string[] fields, string SourceAlias);
 
             string EscapeIdentifier(string schema, string name);
+
+            string[] CreatePredicate<RowContract>(Expression E);
         }
     }
 }
