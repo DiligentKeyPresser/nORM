@@ -1,14 +1,14 @@
-﻿using System;
+﻿using nORM.SQL;
+using Npgsql;
+using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using nORM.SQL;
 
 namespace nORM
 {
     /// <summary>
     /// Represents a connection to an SQL Server database.
     /// </summary>
-    public sealed class SqlServerConnector : Connector
+    public sealed class PostgreSQLConnector : Connector
     {
         public string Host { get; }
 
@@ -16,7 +16,7 @@ namespace nORM
 
         private readonly string ConnectionString;
 
-        public SqlServerConnector(string host, string database, string user, string password)
+        public PostgreSQLConnector(string host, string database, string user, string password)
         {
             Host = host;
             Database = database;
@@ -25,8 +25,8 @@ namespace nORM
 
         internal override object ExecuteScalar(string Query)
         {
-            using (var connection = new SqlConnection(ConnectionString))
-            using (var command = new SqlCommand(Query, connection))
+            using (var connection = new NpgsqlConnection(ConnectionString))
+            using (var command = new NpgsqlCommand(Query, connection))
             {
                 connection.Open();
                 return command.ExecuteScalar();
@@ -35,8 +35,8 @@ namespace nORM
 
         internal override IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
-            using (var connection = new SqlConnection(ConnectionString))
-            using (var command = new SqlCommand(Query, connection))
+            using (var connection = new NpgsqlConnection(ConnectionString))
+            using (var command = new NpgsqlCommand(Query, connection))
             {
                 connection.Open();
                 using (var reader = command.ExecuteReader())
@@ -57,6 +57,6 @@ namespace nORM
             }
         }
 
-        internal override IQueryFactory GetQueryFactory() => TSQLQueryFactory.Singleton;
+        internal override IQueryFactory GetQueryFactory() => PostgreSQLQueryFactory.Singleton;
     }
 }

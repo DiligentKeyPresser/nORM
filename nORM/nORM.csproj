@@ -47,6 +47,7 @@
     <Compile Include="Contracts.cs" />
     <Compile Include="DatabaseContext\DatabaseConnector.cs" />
     <Compile Include="DatabaseContext\DatabaseContext.cs" />
+    <Compile Include="DatabaseContext\PostgreSQL.cs" />
     <Compile Include="DatabaseContext\SqlServer.cs" />
     <Compile Include="Emit.cs" />
     <Compile Include="Materialization.cs" />
@@ -55,6 +56,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider.cs" />
     <Compile Include="SqlConstructor\Interface.cs" />
+    <Compile Include="SqlConstructor\PostgreSQL.cs" />
     <Compile Include="SqlConstructor\TSQL.cs" />
   </ItemGroup>
   <ItemGroup>
