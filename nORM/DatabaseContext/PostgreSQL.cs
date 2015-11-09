@@ -20,7 +20,7 @@ namespace nORM
         {
             Host = host;
             Database = database;
-            ConnectionString = $"Data Source={host};Initial Catalog={database};Persist Security Info=True;User ID={user};Password={password};";
+            ConnectionString = $"Host={host};Database={database};Username={user};Password={password};";
         }
 
         internal override object ExecuteScalar(string Query)
