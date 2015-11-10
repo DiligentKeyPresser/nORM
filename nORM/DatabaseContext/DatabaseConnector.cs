@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Data;
 
 namespace nORM
 {
@@ -58,6 +59,54 @@ namespace nORM
             Host = host;
             Database = database;
             ConnectionString = connection_string;
+        }
+    }
+
+    /// <summary>
+    /// Cjnnection to a remote database via standart driver
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public abstract class DBNetworkConnector : NetworkConnector
+    {
+        protected DBNetworkConnector(string host, string database, string connection_string)
+            : base (host, database, connection_string)
+        { }
+
+        protected abstract IDbConnection MakeConnection(string ConnectionString);
+        protected abstract IDbCommand MakeCommand(string Text, IDbConnection Connection);
+
+        internal override object ExecuteScalar(string Query)
+        {
+            using (var connection = MakeConnection(ConnectionString))
+            using (var command = MakeCommand(Query, connection))
+            {
+                connection.Open();
+                return command.ExecuteScalar();
+            }
+        }
+
+        internal override IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
+        {
+            using (var connection = MakeConnection(ConnectionString))
+            using (var command = MakeCommand(Query, connection))
+            {
+                connection.Open();
+                using (var reader = command.ExecuteReader())
+                {
+                    int ColumnCount = reader.FieldCount;
+                    var row = new object[ColumnCount];
+
+                    // список нужен, иначе будет возвращаться итератор по уничтоженному IDisposable
+                    var result = new List<TElement>();
+#warning нельзя ли заранее узнать размер?
+                    while (reader.Read())
+                    {
+                        reader.GetValues(row);
+                        result.Add(Projection(row));
+                    }
+                    return result;
+                }
+            }
         }
     }
 }
