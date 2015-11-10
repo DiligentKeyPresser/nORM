@@ -21,7 +21,7 @@ namespace test_project
     public interface ITestDB : IDatabase
     {
         [Table("table1")]
-        Table<ITable1Row> Table1 { get; }
+        ITable<ITable1Row> Table1 { get; }
     }
 
     class Program

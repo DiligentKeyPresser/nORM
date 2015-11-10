@@ -45,6 +45,8 @@ namespace nORM
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
         public static readonly Type IQueryFactory = typeof(IQueryFactory);
+        public static readonly Type ITable_generic = typeof(ITable<>);
+
 
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
@@ -111,11 +113,21 @@ namespace nORM
                 if (TableProperty.CanWrite) 
                     throw new InvalidContractException(ContractType, string.Format("table property ({0}) must be readonly", TableProperty.Name));
 
-#warning убеждаться что свойства имеют подходящий тип (в них можно записать Table<>)
-                
+               
                 var TAttr = Attribute.GetCustomAttribute(TableProperty, TypeOf.TableAttribute) as TableAttribute;
-                
-                var Tableconstructor = TableProperty.PropertyType.GetConstructor(
+
+                var TableType = TableProperty.PropertyType;
+#warning валидацю контракта вынести наружу
+                if (!(TableType.IsSubclassOf(TypeOf.ITable_generic)))
+                    throw new InvalidContractException(TableType, "table contract must implement ITable<>");
+
+#warning Typeof
+                var RowType = TableType.GetInterfaceMap(typeof(ITable<>)).InterfaceType.GetGenericArguments()[0];
+
+#warning Typeof
+                var Tableconstructor = typeof(TableContractInflater<,>).MakeGenericType(TableType, RowType).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
+                    
+                    TableProperty.PropertyType.GetConstructor(
                     BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, 
                     null, TypeOf.TableArgumentSet, null);
 
@@ -130,7 +142,7 @@ namespace nORM
                 consgen.Emit(OpCodes.Ldstr, TAttr.TableName);
                 consgen.Emit(OpCodes.Callvirt, TypeOf.IQueryFactory.GetMethod(nameof(IQueryFactory.EscapeIdentifier)));
                                 
-                consgen.Emit(OpCodes.Newobj, Tableconstructor);
+                consgen.Emit(OpCodes.Call, Tableconstructor);//был newobj
                 consgen.Emit(OpCodes.Stfld, field);
 
                 var prop = ClassBuilder.DefineProperty(TableProperty.Name, TableProperty.Attributes, TableProperty.PropertyType, null);
