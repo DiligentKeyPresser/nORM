@@ -17,7 +17,7 @@ namespace nORM
 
         protected override IDbCommand MakeCommand(string Text, IDbConnection Connection) => new NpgsqlCommand(Text, Connection as NpgsqlConnection);
 
-        protected override IDbConnection MakeConnection(string ConnectionString) => new NpgsqlConnection(ConnectionString);
+        protected override IDbConnection MakeConnection() => new NpgsqlConnection(ConnectionString);
 
         internal override IQueryFactory GetQueryFactory() => PostgreSQLQueryFactory.Singleton;
     }

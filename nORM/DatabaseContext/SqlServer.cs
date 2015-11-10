@@ -17,7 +17,7 @@ namespace nORM
 
         protected override IDbCommand MakeCommand(string Text, IDbConnection Connection) => new SqlCommand(Text, Connection as SqlConnection);
 
-        protected override IDbConnection MakeConnection(string ConnectionString) => new SqlConnection(ConnectionString);
+        protected override IDbConnection MakeConnection() => new SqlConnection(ConnectionString);
 
         internal override IQueryFactory GetQueryFactory() => TSQLQueryFactory.Singleton;
     }
