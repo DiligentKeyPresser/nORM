@@ -30,6 +30,10 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Npgsql, Version=3.0.3.0, Culture=neutral, PublicKeyToken=5d8b90d52f46fda7, processorArchitecture=MSIL">
+      <HintPath>..\packages\Npgsql.3.0.3\lib\net45\Npgsql.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -43,6 +47,7 @@
     <Compile Include="Contracts.cs" />
     <Compile Include="DatabaseContext\DatabaseConnector.cs" />
     <Compile Include="DatabaseContext\DatabaseContext.cs" />
+    <Compile Include="DatabaseContext\PostgreSQL.cs" />
     <Compile Include="DatabaseContext\SqlServer.cs" />
     <Compile Include="Emit.cs" />
     <Compile Include="Materialization.cs" />
@@ -51,6 +56,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider.cs" />
     <Compile Include="SqlConstructor\Interface.cs" />
+    <Compile Include="SqlConstructor\PostgreSQL.cs" />
     <Compile Include="SqlConstructor\TSQL.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -58,6 +64,9 @@
       <Project>{c13ac3f6-2634-48c5-bd1f-abec9f1344e0}</Project>
       <Name>ExpLess</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
