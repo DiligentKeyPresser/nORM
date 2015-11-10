@@ -52,7 +52,7 @@ namespace nORM
         public static readonly Type[] DBContextArgumentSet = new Type[] { Connector };
 
         /// <summary>
-        /// Массив типов аргументов конструктора таблицы
+        /// Basic table constructor arguments
         /// </summary>
         public static readonly Type[] TableArgumentSet = new Type[] { DatabaseContext, String };
 

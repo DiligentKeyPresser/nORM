@@ -18,11 +18,16 @@ namespace nORM
     }
 
     /// <summary>
-    /// The basic table contract. Can be either used in Database directly or extended to provide extended functionality.
+    /// The basic table contract. 
+    /// Can be either used in a database contract directly 
+    /// or extended to provide additional functionality.
     /// </summary>
     public interface ITable<RowContract> : IQueryable<RowContract>
     {
-
+        /// <summary>
+        /// Gets a name of the table, based on contract declaration.
+        /// </summary>
+        string Name { get; }
     }
 
 #warning сделать базовый атрибут с недопустимостью множественного применения

@@ -7,8 +7,7 @@ namespace nORM
 {
     internal static class RowContractInflater<RowContract>
     {
-        public static Type RowType { get; }
-        private static ConstructorInfo RowConstructor;
+        private static readonly ConstructorInfo RowConstructor;
 
         static RowContractInflater()
         {
@@ -20,7 +19,7 @@ namespace nORM
 
 #warning А надо ли от DatabaseRow наследоваться?
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
-                "DBRow_" + typeof(RowContract).Name,
+                "DBRow_" + ContractType.Name,
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout,
                 TypeOf.DatabaseRow, new Type[] { ContractType });
 
@@ -67,15 +66,11 @@ namespace nORM
             }
 
             consgen.Emit(OpCodes.Ret);
-            RowType = ClassBuilder.CreateType();
-
+            var RowType = ClassBuilder.CreateType();
             RowConstructor = RowType.GetConstructor(TypeOf.RowArgumentSet);
         }
 
-        public static RowContract Inflate(object[] data)
-        {
-            return (RowContract)RowConstructor.Invoke(new object[] { data });
-        }
+        public static RowContract Inflate(object[] data) => (RowContract)RowConstructor.Invoke(new object[] { data });
     }
 
 }

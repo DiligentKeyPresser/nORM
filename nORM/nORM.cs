@@ -73,13 +73,12 @@ namespace nORM
         }
 
         /// <summary>
-        /// Имя таблицы в базе данных
+        /// Gets a name of the table, based on contract declaration.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Конструктор для вызова из динамического класса базы данных.
-        /// Вручную не вызывается нигде.
+        /// This constructor will be called dynamically
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, string TableName)
             : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, BuildSelectionList(ConnectionContext), null))
