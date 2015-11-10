@@ -275,7 +275,7 @@ namespace nORM
 
             public override SelectQuery Where(string clause)
             {
-                var clone = Clone() as PostgreSQLSelectQuery;
+                var clone = Clone() as StandartSQLSelectQuery;
 
                 var new_where = new string[where.Length + 1];
                 Array.Copy(where, new_where, where.Length);
@@ -287,7 +287,7 @@ namespace nORM
 
             public override SelectQuery MakeCount()
             {
-                var clone = Clone() as PostgreSQLSelectQuery;
+                var clone = Clone() as StandartSQLSelectQuery;
                 clone.fields = StandartCountClause;
                 return clone;
             }
