@@ -8,20 +8,11 @@ namespace nORM
     /// <summary>
     /// Represents a connection to an SQL Server database.
     /// </summary>
-    public sealed class SqlServerConnector : Connector
+    public sealed class SqlServerConnector : NetworkConnector
     {
-        public string Host { get; }
-
-        public string Database { get; }
-
-        private readonly string ConnectionString;
-
         public SqlServerConnector(string host, string database, string user, string password)
-        {
-            Host = host;
-            Database = database;
-            ConnectionString = $"Data Source={host};Initial Catalog={database};Persist Security Info=True;User ID={user};Password={password};";
-        }
+            : base(host, database, $"Data Source={host};Initial Catalog={database};Persist Security Info=True;User ID={user};Password={password};")
+        { }
 
         internal override object ExecuteScalar(string Query)
         {

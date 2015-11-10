@@ -57,6 +57,7 @@
     <Compile Include="Provider.cs" />
     <Compile Include="SqlConstructor\Interface.cs" />
     <Compile Include="SqlConstructor\PostgreSQL.cs" />
+    <Compile Include="SqlConstructor\Standart.cs" />
     <Compile Include="SqlConstructor\TSQL.cs" />
   </ItemGroup>
   <ItemGroup>

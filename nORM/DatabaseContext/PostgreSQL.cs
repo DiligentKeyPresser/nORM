@@ -8,20 +8,11 @@ namespace nORM
     /// <summary>
     /// Represents a connection to an SQL Server database.
     /// </summary>
-    public sealed class PostgreSQLConnector : Connector
+    public sealed class PostgreSQLConnector : NetworkConnector
     {
-        public string Host { get; }
-
-        public string Database { get; }
-
-        private readonly string ConnectionString;
-
         public PostgreSQLConnector(string host, string database, string user, string password)
-        {
-            Host = host;
-            Database = database;
-            ConnectionString = $"Host={host};Database={database};Username={user};Password={password};";
-        }
+            : base(host, database, $"Host={host};Database={database};Username={user};Password={password};")
+        { }
 
         internal override object ExecuteScalar(string Query)
         {

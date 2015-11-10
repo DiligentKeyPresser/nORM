@@ -1,6 +1,7 @@
 ﻿using nORM.SQL;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 
 namespace nORM
 {
@@ -26,5 +27,37 @@ namespace nORM
         /// Return Query Factory apropriate for the database engine.
         /// </summary>
         internal abstract IQueryFactory GetQueryFactory();
+
+        // cant inherit this class outside the library
+        internal Connector() { }
+    }
+
+    /// <summary>
+    /// Connection to a remote database
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public abstract class NetworkConnector : Connector
+    {
+        /// <summary>
+        /// Server name
+        /// </summary>
+        public string Host { get; }
+
+        /// <summary>
+        /// Database name
+        /// </summary>
+        public string Database { get; }
+
+        /// <summary>
+        /// The connection string
+        /// </summary>
+        protected readonly string ConnectionString;
+
+        protected NetworkConnector(string host, string database, string connection_string)
+        {
+            Host = host;
+            Database = database;
+            ConnectionString = connection_string;
+        }
     }
 }
