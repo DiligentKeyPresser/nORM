@@ -67,6 +67,10 @@
       <Project>{c13ac3f6-2634-48c5-bd1f-abec9f1344e0}</Project>
       <Name>ExpLess</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MakeSQL\MakeSQL.csproj">
+      <Project>{01cf49f5-fc97-41b2-867f-7346bdb3491b}</Project>
+      <Name>MakeSQL</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
