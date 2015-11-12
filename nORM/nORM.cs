@@ -14,8 +14,7 @@ namespace nORM
     internal abstract class DatabaseRow { }
 
 #warning do we need this class?
-#warning can be interned now
-    public abstract class RowSource
+    internal abstract class RowSource
     {
         internal readonly SelectQuery theQuery;
 
@@ -28,13 +27,12 @@ namespace nORM
         internal DatabaseContext Context { get; }
     }
 
-#warning can be interned now
     /// <summary>
     /// Класс для представления любого объекта, из которого можно запросом получать строки - 
     /// таблицы, представления, результаты выполнения функций и других запросов
     /// </summary>
     /// <typeparam name="RowContract"> Тип строк, которые можно получить из данного объекта </typeparam>
-    public partial class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
+    internal partial class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
     {
         protected static readonly Type contract_type = typeof(RowContract);
         /// <summary>
@@ -59,8 +57,7 @@ namespace nORM
         }
     }
 
-#warning can be interned now
-    public sealed class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
+    internal class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
     {
         private static readonly FieldAttribute[] FieldAttributes;
 

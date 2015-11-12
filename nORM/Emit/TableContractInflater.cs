@@ -21,12 +21,12 @@ namespace nORM
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
                 "DBTable_" + TableContractType.Name,
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout,
-                typeof(Table<RowContract>));
+                typeof(Table<RowContract>), new Type[] { typeof(TableContract) });
 
             var BaseConstructor = BasicTableType.GetConstructor(
                 BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance,
                 null, TypeOf.TableArgumentSet, null);
-            var constructor = ClassBuilder.DefineConstructor(MethodAttributes.Public, BaseConstructor.CallingConvention, TypeOf.RowArgumentSet);
+            var constructor = ClassBuilder.DefineConstructor(MethodAttributes.Public, BaseConstructor.CallingConvention, TypeOf.TableArgumentSet);
             var consgen = constructor.GetILGenerator();
 
             // base constructor
@@ -45,5 +45,23 @@ namespace nORM
         }
 
         public static TableContract Inflate(DatabaseContext ConnectionContext, string TableName) => (TableContract)TableConstructor.Invoke(new object[] { ConnectionContext, TableName });
+    }
+
+    internal static class TableContractHelpers
+    {
+        internal static Type ExtractBasicTableInterface(Type TableContract)
+        {
+            if (!TableContract.IsGenericType || TableContract.GetGenericTypeDefinition() != TypeOf.ITable_generic)
+            {
+                foreach (var Base in TableContract.GetInterfaces())
+                {
+                    var basecontract = ExtractBasicTableInterface(Base);
+                    if (basecontract != null) return basecontract;
+                }
+                return null;
+            }
+            else return TableContract;
+        }
+
     }
 }

@@ -46,6 +46,7 @@ namespace nORM
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
         public static readonly Type IQueryFactory = typeof(IQueryFactory);
         public static readonly Type ITable_generic = typeof(ITable<>);
+        public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
 
 
         /// <summary>
@@ -117,15 +118,13 @@ namespace nORM
                 var TAttr = Attribute.GetCustomAttribute(TableProperty, TypeOf.TableAttribute) as TableAttribute;
 
                 var TableType = TableProperty.PropertyType;
-#warning валидацю контракта вынести наружу
-                if (!(TableType.IsSubclassOf(TypeOf.ITable_generic)))
-                    throw new InvalidContractException(TableType, "table contract must implement ITable<>");
 
-#warning Typeof
-                var RowType = TableType.GetInterfaceMap(typeof(ITable<>)).InterfaceType.GetGenericArguments()[0];
+                var ITableInterface = TableContractHelpers.ExtractBasicTableInterface(TableType);
+                if (ITableInterface == null) throw new InvalidContractException(TableType, "table contract must be an interface of ITable<>");
 
-#warning Typeof
-                var Tableconstructor = typeof(TableContractInflater<,>).MakeGenericType(TableType, RowType).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
+                var RowContract = ITableInterface.GetGenericArguments()[0];
+
+                var Tableconstructor = TypeOf.TableContractInflater.MakeGenericType(TableType, RowContract).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
                     
                     TableProperty.PropertyType.GetConstructor(
                     BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, 
