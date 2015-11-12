@@ -21,7 +21,7 @@ namespace test_project
         string Name { get; }
     }
 
-    public interface ITestTable : ITable<ITable1Row>
+    public interface ITestTable : ITable<ITable1Row>, IInsertable<ITable1RowData>
     {
 
     }

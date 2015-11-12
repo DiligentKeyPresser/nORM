@@ -1,5 +1,6 @@
 ﻿using nORM.SQL;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -44,9 +45,11 @@ namespace nORM
         public static readonly Type Queryable = typeof(Queryable);
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
+        public static readonly Type IEnumerable_generic = typeof(IEnumerable<>);
         public static readonly Type IQueryFactory = typeof(IQueryFactory);
         public static readonly Type ITable_generic = typeof(ITable<>);
         public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
+        public static readonly Type IInsertable = typeof(IInsertable<>);
 
 
         /// <summary>

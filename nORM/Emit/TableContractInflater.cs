@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -42,6 +43,24 @@ namespace nORM
             consgen.Emit(OpCodes.Ldarg_2);
             consgen.Emit(OpCodes.Call, BaseConstructor);
 
+            var Insertables = TableContractType.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == TypeOf.IInsertable).
+                Select(i => i.GetGenericArguments()[0]).Distinct().ToArray();
+            foreach (var insertable in Insertables)
+            {
+                var InsertOne = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { insertable });
+                var ins_one_body = InsertOne.GetILGenerator();
+                ins_one_body.Emit(OpCodes.Ret);
+
+                var InsertRange = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IEnumerable_generic.MakeGenericType(insertable) });
+                var ins_range_body = InsertRange.GetILGenerator();
+                ins_range_body.Emit(OpCodes.Ret);
+
+                var InsertSubQuery = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IQueryable_generic.MakeGenericType(insertable) });
+                var ins_q_body = InsertSubQuery.GetILGenerator();
+                ins_q_body.Emit(OpCodes.Ret);
+            }
+
+
 #warning insert additional operations here
 
             consgen.Emit(OpCodes.Ret);
@@ -59,22 +78,10 @@ namespace nORM
 
     internal static class TableContractHelpers
     {
-        /// <summary>
-        /// Finds an `ITable` interface in the given table contract 
-        /// </summary>
-        internal static Type ExtractBasicTableInterface(Type TableContract)
-        {
-            if (!TableContract.IsGenericType || TableContract.GetGenericTypeDefinition() != TypeOf.ITable_generic)
-            {
-                foreach (var Base in TableContract.GetInterfaces())
-                {
-                    var basecontract = ExtractBasicTableInterface(Base);
-                    if (basecontract != null) return basecontract;
-                }
-                return null;
-            }
-            else return TableContract;
-        }
+        /// <summary> Checks if the given table is an ITable itself </summary>
+        private static bool IsBasicTableContract(Type Contract) => Contract.IsGenericType && Contract.GetGenericTypeDefinition() == TypeOf.ITable_generic;
 
+        /// <summary> Finds an `ITable` interface in the given table contract </summary>
+        internal static Type ExtractBasicTableInterface(Type TableContract) => IsBasicTableContract(TableContract) ? TableContract : TableContract.GetInterfaces().First(IsBasicTableContract);
     }
 }
