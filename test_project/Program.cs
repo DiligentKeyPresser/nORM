@@ -35,7 +35,7 @@ namespace test_project
 
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("server", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             Console.WriteLine("partial evaluation");
@@ -61,7 +61,7 @@ namespace test_project
             Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));
 
             Console.WriteLine();
-            Debugger.Break();
+         //   Debugger.Break();
 
             Console.WriteLine("any");
 
@@ -123,7 +123,8 @@ namespace test_project
             Console.WriteLine("simple select");
             // foreach (var r in CopyDatabase.Брак.Select(r=>r.Text)) Console.WriteLine(r);*/
 
-            Debugger.Break();
+            //Debugger.Break();
+            Console.ReadKey();
         }
     }
 
