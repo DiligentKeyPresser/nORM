@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 
 // Типы для формирования контрактов
 
@@ -14,6 +15,19 @@ namespace nORM
 
         /// <summary> Событие позволяет производить мониторинг выполняемых с помощью данного контекста запросов к бд. </summary>
         event BasicCommandHandler BeforeCommandExecute;
+    }
+
+    /// <summary>
+    /// The basic table contract. 
+    /// Can be either used in a database contract directly 
+    /// or extended to provide additional functionality.
+    /// </summary>
+    public interface ITable<RowContract> : IQueryable<RowContract>
+    {
+        /// <summary>
+        /// Gets a name of the table, based on contract declaration.
+        /// </summary>
+        string Name { get; }
     }
 
 #warning сделать базовый атрибут с недопустимостью множественного применения

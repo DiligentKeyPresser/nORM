@@ -17,15 +17,22 @@ namespace test_project
         string Name { get; }
     }
 
+    public interface ITestTable : ITable<ITable1Row>
+    {
+
+    }
+
 
     public interface ITestDB : IDatabase
     {
         [Table("table1")]
-        Table<ITable1Row> Table1 { get; }
+        ITestTable Table1 { get; }
     }
 
     class Program
     {
+        
+
         static void Main(string[] args)
         {
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
@@ -46,8 +53,8 @@ namespace test_project
             // "(tri ^ 2)" => UB???
             // tri << nint??0   - isLifted
           //  Console.WriteLine(CopyDatabase.Table1.Any(r => new List<int>() { Capacity = 180 }.GetHashCode() > 5)); 
-
-
+          
+                       
          //   Debugger.Break();
 
             Console.WriteLine("all");

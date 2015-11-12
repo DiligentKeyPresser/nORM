@@ -14,7 +14,7 @@ namespace nORM
     internal abstract class DatabaseRow { }
 
 #warning do we need this class?
-    public abstract class RowSource
+    internal abstract class RowSource
     {
         internal readonly SelectQuery theQuery;
 
@@ -32,7 +32,7 @@ namespace nORM
     /// таблицы, представления, результаты выполнения функций и других запросов
     /// </summary>
     /// <typeparam name="RowContract"> Тип строк, которые можно получить из данного объекта </typeparam>
-    public partial class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
+    internal partial class RowSource<RowContract> : RowSource, IQueryable<RowContract> 
     {
         protected static readonly Type contract_type = typeof(RowContract);
         /// <summary>
@@ -57,7 +57,7 @@ namespace nORM
         }
     }
 
-    public sealed class Table<RowContract> : RowSource<RowContract> 
+    internal class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
     {
         private static readonly FieldAttribute[] FieldAttributes;
 
@@ -70,13 +70,12 @@ namespace nORM
         }
 
         /// <summary>
-        /// Имя таблицы в базе данных
+        /// Gets a name of the table, based on contract declaration.
         /// </summary>
         public string Name { get; }
 
         /// <summary>
-        /// Конструктор для вызова из динамического класса базы данных.
-        /// Вручную не вызывается нигде.
+        /// This constructor will be called dynamically
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, string TableName)
             : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, BuildSelectionList(ConnectionContext), null))

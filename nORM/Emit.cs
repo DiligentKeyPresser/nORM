@@ -45,6 +45,9 @@ namespace nORM
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
         public static readonly Type IQueryFactory = typeof(IQueryFactory);
+        public static readonly Type ITable_generic = typeof(ITable<>);
+        public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
+
 
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
@@ -52,7 +55,7 @@ namespace nORM
         public static readonly Type[] DBContextArgumentSet = new Type[] { Connector };
 
         /// <summary>
-        /// Массив типов аргументов конструктора таблицы
+        /// Basic table constructor arguments
         /// </summary>
         public static readonly Type[] TableArgumentSet = new Type[] { DatabaseContext, String };
 
@@ -111,11 +114,19 @@ namespace nORM
                 if (TableProperty.CanWrite) 
                     throw new InvalidContractException(ContractType, string.Format("table property ({0}) must be readonly", TableProperty.Name));
 
-#warning убеждаться что свойства имеют подходящий тип (в них можно записать Table<>)
-                
+               
                 var TAttr = Attribute.GetCustomAttribute(TableProperty, TypeOf.TableAttribute) as TableAttribute;
-                
-                var Tableconstructor = TableProperty.PropertyType.GetConstructor(
+
+                var TableType = TableProperty.PropertyType;
+
+                var ITableInterface = TableContractHelpers.ExtractBasicTableInterface(TableType);
+                if (ITableInterface == null) throw new InvalidContractException(TableType, "table contract must be an interface of ITable<>");
+
+                var RowContract = ITableInterface.GetGenericArguments()[0];
+
+                var Tableconstructor = TypeOf.TableContractInflater.MakeGenericType(TableType, RowContract).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
+                    
+                    TableProperty.PropertyType.GetConstructor(
                     BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, 
                     null, TypeOf.TableArgumentSet, null);
 
@@ -130,7 +141,7 @@ namespace nORM
                 consgen.Emit(OpCodes.Ldstr, TAttr.TableName);
                 consgen.Emit(OpCodes.Callvirt, TypeOf.IQueryFactory.GetMethod(nameof(IQueryFactory.EscapeIdentifier)));
                                 
-                consgen.Emit(OpCodes.Newobj, Tableconstructor);
+                consgen.Emit(OpCodes.Call, Tableconstructor);//был newobj
                 consgen.Emit(OpCodes.Stfld, field);
 
                 var prop = ClassBuilder.DefineProperty(TableProperty.Name, TableProperty.Attributes, TableProperty.PropertyType, null);
@@ -156,79 +167,6 @@ namespace nORM
         public static DbContract Inflate(Connector Connection)
         {
             return Activator.CreateInstance(ProxyType, Connection) as DbContract;
-        }
-    }
-
-    internal static class RowContractInflater<RowContract>
-    {
-        public static Type RowType { get; }
-        private static ConstructorInfo RowConstructor;
-
-        static RowContractInflater()
-        {
-            var ContractType = typeof(RowContract);
-
-#warning Вынести проверку контракта в конструирование базы данных
-            if (!ContractType.IsInterface) throw new InvalidContractException(ContractType, "contract must be an interface.");
-#warning проверить чтобы все члены были размечены
-
-#warning А надо ли от DatabaseRow наследоваться?
-            TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
-                "DBRow_" + typeof(RowContract).Name, 
-                TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout, 
-                TypeOf.DatabaseRow, new Type[] { ContractType });
-
-            // генерируем конструктор 
-            var constructor = ClassBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.HasThis, TypeOf.RowArgumentSet);
-            var consgen = constructor.GetILGenerator();
-
-            // генерируем свойства
-#warning порядок полей гарантирован???
-            var FieldProperties = ContractType.GetProperties().Where(prop => Attribute.IsDefined(prop, TypeOf.FieldAttribute)).ToArray();
-            for (int field_number = 0; field_number < FieldProperties.Length; field_number++ )
-            {
-                var FieldProperty = FieldProperties[field_number];
-#warning Вынести проверку контракта в конструирование базы данных
-                if (FieldProperty.CanWrite) throw new InvalidContractException(ContractType, string.Format("row property ({0}) must be readonly", FieldProperty.Name));
-
-                var FieldAttr = Attribute.GetCustomAttribute(FieldProperty, TypeOf.FieldAttribute) as FieldAttribute;
-                var field = ClassBuilder.DefineField("__field_" + FieldProperty.Name, FieldProperty.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
-
-                consgen.Emit(OpCodes.Ldarg_0); // для stfld
-                consgen.Emit(OpCodes.Ldarg_1);
-                consgen.Emit(OpCodes.Ldc_I4, field_number);
-                consgen.Emit(OpCodes.Ldelem_Ref);
-
-                if (FieldProperty.PropertyType.IsValueType)
-                    consgen.Emit(OpCodes.Unbox_Any, FieldProperty.PropertyType);
-
-                consgen.Emit(OpCodes.Stfld, field);
-
-                var prop = ClassBuilder.DefineProperty(FieldProperty.Name, FieldProperty.Attributes, FieldProperty.PropertyType, null);
-                
-                var getter = ClassBuilder.DefineMethod(
-                    "get_" + FieldProperty.Name, 
-                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.Virtual, 
-                    FieldProperty.PropertyType, Type.EmptyTypes);
-
-                var gettergen = getter.GetILGenerator();
-
-                gettergen.Emit(OpCodes.Ldarg_0); // this
-                gettergen.Emit(OpCodes.Ldfld, field);
-                gettergen.Emit(OpCodes.Ret);
-
-                prop.SetGetMethod(getter);
-            }
-
-            consgen.Emit(OpCodes.Ret);
-            RowType = ClassBuilder.CreateType();
-
-            RowConstructor = RowType.GetConstructor(TypeOf.RowArgumentSet);
-        }
-
-        public static RowContract Inflate(object[] data)
-        {
-            return (RowContract)RowConstructor.Invoke(new object[] { data });
         }
     }
 }
