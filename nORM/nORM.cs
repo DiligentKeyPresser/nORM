@@ -65,8 +65,7 @@ namespace nORM
 
         static Table()
         {
-            FieldAttributes = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
-                .Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
+            FieldAttributes = RowContractInflater<RowContract>.ContractFields.Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
         }
 
         /// <summary>

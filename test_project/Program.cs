@@ -1,15 +1,19 @@
 ﻿using nORM;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 namespace test_project
 {
-    public interface ITable1Row
+    public interface ITable1Row : ITable1RowData
     {
         [Field("id")]
         int ID { get; }
+    }
 
+    public interface ITable1RowData
+    {
         [Field("count")]
         int Count { get; }
 
