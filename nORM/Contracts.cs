@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 // Типы для формирования контрактов
@@ -28,6 +29,32 @@ namespace nORM
         /// Gets a name of the table, based on contract declaration.
         /// </summary>
         string Name { get; }
+    }
+
+    /// <summary>
+    /// Extension to the table contract.
+    /// Used to define a field subset which can be used in the INSERT statement.
+    /// </summary>
+    /// <typeparam name="RowSubcontract"> a field subset without primary keys and evaluated columns. </typeparam>
+    public interface IInsertable<RowSubcontract>
+    {
+        /// <summary>
+        /// A single INSERT query
+        /// </summary>
+        /// <param name="Row"> A single row to be inserted </param>
+        void Insert(RowSubcontract Row);
+
+        /// <summary>
+        /// An INSERT query with table constructor 
+        /// </summary>
+        /// <param name="Rows"> A collection of rows to insert </param>
+        void Insert(IEnumerable<RowSubcontract> Rows);
+
+        /// <summary>
+        /// An INSERT operation with subquery used as a source.
+        /// </summary>
+        /// <param name="Source"> A subquery to select source rows </param>
+        void Insert(IQueryable<RowSubcontract> Source);
     }
 
 #warning сделать базовый атрибут с недопустимостью множественного применения
