@@ -90,13 +90,15 @@ namespace nORM
         /// <summary>
         /// Gets collection of fields of the contract.
         /// </summary>
-        internal static ReadOnlyCollection<PropertyInfo> ContractFields => fContractFields;
+        internal static IReadOnlyList<PropertyInfo> ContractFields => fContractFields;
 
         /// <summary>
         /// Creates a new instance of the row contract
         /// </summary>
         /// <param name="data">Objects to store in fields </param>
         public static RowContract Inflate(object[] data) => (RowContract)RowConstructor.Invoke(new object[] { data });
+
+        
     }
 
 }
