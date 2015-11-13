@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class LocalIdentifier : Internals.Builder
+    public sealed class LocalIdentifier : Internals.Builder, IFieldDefinion
     {
 #warning validation?
         /// <summary> Name of the object </summary>

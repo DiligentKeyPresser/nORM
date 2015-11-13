@@ -1,14 +1,32 @@
-﻿namespace MakeSQL
+﻿using System;
+using MakeSQL.Internals;
+using System.Collections.Generic;
+
+namespace MakeSQL
 {
     public abstract class QueryFactory
     {
         internal QueryFactory() { }
 
-        /// <summary>
-        /// Creates a simple select query which can be extended or used as a subquery
-        /// </summary>
-        /// <param name="Source"> A qualified name of table/view or</param>
-        public abstract ISelectQuery Select(ISelectSource Source);
+        internal virtual string GetFunctionName(SqlFunction Function)
+        {
+            switch (Function)
+            {
+                case SqlFunction.Count: return "COUNT";
+                default: throw new NotSupportedException($"The given function (`{Function.ToString()}`) is not supporthed in the surrent context.");
+            }
+        }
+
+        internal virtual IEnumerator<string> EscapeLiteral(object Value)
+        {
+            if (Value.GetType() == typeof(int))
+            {
+                yield return Value.ToString();
+                goto stop;
+            }
+            throw new NotSupportedException($"The type of the given literal (`{Value.GetType().Name}`) is not supporthed in the surrent context.");
+            stop:;
+        }
 
         internal virtual string LeftEscapingSymbol => "\"";
         internal virtual string RightEscapingSymbol => "\"";

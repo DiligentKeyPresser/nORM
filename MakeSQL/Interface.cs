@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using MakeSQL.Internals;
+using System.Collections.Generic;
 using System.Text;
 
 namespace MakeSQL
@@ -39,9 +40,10 @@ namespace MakeSQL
     }
 
     public interface ISelectSource : Internals.IBuildable
-    {
-        
+    {        
     }
+
+    public interface IFieldDefinion : Internals.IBuildable { }
 
     public interface IQuery
     {
@@ -51,17 +53,4 @@ namespace MakeSQL
         /// <param name="LanguageContext"> A factory corresponding to current SQL flavor </param>
         string Build(QueryFactory LanguageContext);
     }
-
-    public interface ISelectQuery : IQuery, Internals.IBuildable
-    {
-        ISelectQuery Clone();
-        ISelectQuery Where(string Clause);
-        IQuery MakeCount();
-        IQuery MakeLongCount();
-        IQuery MakeAny();
-    }
-
-
-
-
 }

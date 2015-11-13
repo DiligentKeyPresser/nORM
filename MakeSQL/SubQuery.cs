@@ -5,22 +5,22 @@ namespace MakeSQL
 {
     public sealed class SubQuery : Internals.Builder, ISelectSource
     {
-        private readonly ISelectQuery baseQuery;
+        private readonly SelectQuery baseQuery;
 
         private readonly LocalIdentifier AS;
 
-        internal SubQuery(ISelectQuery Base, LocalIdentifier Name)
+        internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
         {
             if (AS == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
             baseQuery = Base;
-            AS = Name;
+            AS = Alias;
         }
 
         internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
         {
             yield return "(";
 
-            var subquery = baseQuery.Builder.Compile(LanguageContext);
+            var subquery = baseQuery.Compile(LanguageContext);
             while (subquery.MoveNext()) yield return subquery.Current;
 
             yield return ") AS ";
@@ -32,6 +32,6 @@ namespace MakeSQL
 
     public static class SubQueryExtensions
     {
-        public static SubQuery AS(this ISelectQuery Self, LocalIdentifier Name) => new SubQuery(Self, Name);
+        public static SubQuery AS(this SelectQuery Self, LocalIdentifier Alias) => new SubQuery(Self, Alias);
     }
 }
