@@ -22,10 +22,9 @@ namespace MakeSQL
             if (Value.GetType() == typeof(int))
             {
                 yield return Value.ToString();
-                goto stop;
+                yield break; 
             }
             throw new NotSupportedException($"The type of the given literal (`{Value.GetType().Name}`) is not supporthed in the surrent context.");
-            stop:;
         }
 
         internal virtual string LeftEscapingSymbol => "\"";
