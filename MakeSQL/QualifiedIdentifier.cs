@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace MakeSQL
 {
+#warning name can be assigned to an object which is not a valid ISelectSource
     public sealed class QualifiedIdentifier : Internals.Builder, ISelectSource
     {
 #warning validation?
@@ -75,7 +76,6 @@ namespace MakeSQL
 
         private static readonly Regex Parser = new Regex(@"^[\[`""]?(?<schema>\w*)[\]`""]?[\.:]+[\[`""]?(?<name>\w+)[\]`""]?$");
 
-#warning test this!
         /// <summary>
         /// Converts string in format 'schema.name' into a QualifiedIdentifier using regex
         /// </summary>

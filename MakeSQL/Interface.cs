@@ -43,17 +43,6 @@ namespace MakeSQL
         
     }
 
-    public abstract class QueryFactory
-    {
-        public abstract ISelectQuery Select(ISelectSource Source);
-
-        internal virtual string LeftEscapingSymbol => "\"";
-        internal virtual string RightEscapingSymbol => "\"";
-    }
-
-    /// <summary>
-    /// A query
-    /// </summary>
     public interface IQuery
     {
         /// <summary>
