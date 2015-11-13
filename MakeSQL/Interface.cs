@@ -8,17 +8,12 @@ namespace MakeSQL
 #warning separate file
     namespace Internals
     {
-        /// <summary>
-        /// Composite query component
-        /// </summary>
+#warning probably we dont need this anymore
         public interface IBuildable
         {
             Builder Builder { get; }
         }
 
-        /// <summary>
-        /// Basic class for composite query components
-        /// </summary>
         public abstract class Builder : IBuildable
         {
             internal Builder() { }
@@ -39,17 +34,13 @@ namespace MakeSQL
         }
     }
 
-    public interface ISelectSource : Internals.IBuildable
-    {        
-    }
+    public interface ISelectSource : IBuildable { }
 
-    public interface IFieldDefinion : Internals.IBuildable { }
+    public interface IColumnDefinion : IBuildable { }
 
     public interface IQuery
     {
-        /// <summary>
-        /// Builds a query from scratch
-        /// </summary>
+        /// <summary> Builds a query text </summary>
         /// <param name="LanguageContext"> A factory corresponding to current SQL flavor </param>
         string Build(QueryFactory LanguageContext);
     }

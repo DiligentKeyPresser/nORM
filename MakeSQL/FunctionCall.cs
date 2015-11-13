@@ -1,9 +1,5 @@
 ﻿using MakeSQL.Internals;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MakeSQL
 {
@@ -13,13 +9,13 @@ namespace MakeSQL
         CountBig
     }
 
-    public class SQLFunctionCall : Builder, IFieldDefinion
+    public class SQLFunctionCall : Builder, IColumnDefinion
     {
         public SqlFunction Function { get; }
 
-        private readonly IFieldDefinion[] Arguments;
+        private readonly IColumnDefinion[] Arguments;
 
-        public SQLFunctionCall(SqlFunction Func, params IFieldDefinion[] Args)
+        public SQLFunctionCall(SqlFunction Func, params IColumnDefinion[] Args)
         {
             Function = Func;
             Arguments = Args;

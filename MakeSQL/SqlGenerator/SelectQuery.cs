@@ -7,23 +7,29 @@ namespace MakeSQL
     public sealed class SelectQuery : Builder, IQuery
     {
         private ISelectSource source;
-        private IFieldDefinion[] fields;
+        private IColumnDefinion[] fields;
         private string[] where;
 
 #warning add overload with QualifiedIdentifier
         /// <summary>
         /// Creates a simple select query which can be extended or used as a subquery
         /// </summary>
-        /// <param name="Source"> A qualified name of table/view or</param>
-        public SelectQuery(ISelectSource Source, params IFieldDefinion[] Fields)
+        /// <param name="Source"> A qualified name of table/view or a subquery</param>
+        public SelectQuery(ISelectSource Source, params IColumnDefinion[] Fields)
         {
             source = Source;
             fields = Fields;
         }
 
+        /// <summary>
+        /// Creates a copy of the given query
+        /// </summary>
         public SelectQuery Clone() => new SelectQuery(source, fields) { where = where };
 
-        public IQuery NewSelect(params IFieldDefinion[] NewFields)
+        /// <summary>
+        /// Creates a SELECT query (based on the given one) with different columns 
+        /// </summary>
+        public IQuery NewSelect(params IColumnDefinion[] NewFields)
         {
             var clone = Clone();
             clone.fields = NewFields;
@@ -44,7 +50,31 @@ namespace MakeSQL
 
         internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
         {
-            throw new NotImplementedException();
+            yield return "SELECT ";
+            for (int i = 0; i < fields.Length; i++)
+            {
+                var field = fields[i].Builder.Compile(LanguageContext);
+                while (field.MoveNext()) yield return field.Current;                  
+                if (i < fields.Length - 1) yield return ", ";
+            }
+            yield return " FROM ";
+            var From = source.Builder.Compile(LanguageContext);
+            while (From.MoveNext()) yield return From.Current;
+
+            if (where.Length > 0)
+            {
+                yield return " WHERE ";
+                bool brackets = where.Length > 1;
+
+                for (int i = 0; i < where.Length; i++)
+                {
+                    if (brackets) yield return "(";
+                    yield return where[i];
+                    if (brackets) yield return ")";
+
+                    if (i < where.Length - 1) yield return " AND ";
+                }
+            }
         }
 
         string IQuery.Build(QueryFactory LanguageContext) => Build(LanguageContext);

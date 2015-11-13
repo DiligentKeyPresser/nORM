@@ -1,13 +1,9 @@
 ﻿using MakeSQL.Internals;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MakeSQL
 {
-    public class Constant : Builder, IFieldDefinion
+    public class Constant : Builder, IColumnDefinion
     {
         public object Value { get; }
 
