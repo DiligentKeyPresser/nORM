@@ -80,7 +80,9 @@ namespace nORM
         }
 
         /// <summary> Name of the table. </summary>
-        public QualifiedIdentifier TableName { get; }
+        internal QualifiedIdentifier TableName => fieldTableName;
+
+        private readonly string fieldTableName;
 
         /// <summary>
         /// Атрибут для разметки контракта базы данных.
@@ -88,8 +90,8 @@ namespace nORM
         /// Свойство должно возвращать специализацию Table интерфейсом контракта строки таблицы.
         /// Свойство должно быть только для чтения.
         /// </summary>
-        /// <param name="Name">Имя представляемой таблицы.</param>
-        public TableAttribute(QualifiedIdentifier Name) { TableName = Name; }
+        /// <param name="Name"> Optionally qualified name of the table. </param>
+        public TableAttribute(string Name) { fieldTableName = Name; }
     }
 
 #warning А нужен ли такой атрибут?
@@ -101,16 +103,18 @@ namespace nORM
     public sealed class FieldAttribute : Attribute
     {
         /// <summary> Column name </summary>
-        public LocalIdentifier ColumnName { get; }
+        internal LocalIdentifier ColumnName => fieldColumnName;
+
+        private readonly string fieldColumnName;
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
         /// Тип возвращаемого помечаемым свойством результата должен соответствовать типу данных в базе.
         /// </summary>
         /// <param name="column">Имя колонки в таблице</param>
-        public FieldAttribute(LocalIdentifier column)
+        public FieldAttribute(string column)
         {
-            ColumnName = column;
+            fieldColumnName = column;
         }
     }
 
