@@ -1,5 +1,4 @@
 ﻿using MakeSQL;
-using nORM.SQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,9 +50,6 @@ namespace nORM
         public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
         public static readonly Type IInsertable = typeof(IInsertable<>);
         
-        [Obsolete("old", true)]
-        public static readonly Type IQueryFactory = typeof(IQueryFactory);
-
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>

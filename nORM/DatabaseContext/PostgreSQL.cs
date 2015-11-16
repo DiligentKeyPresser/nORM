@@ -1,8 +1,5 @@
 ﻿using MakeSQL;
-using nORM.SQL;
 using Npgsql;
-using System;
-using System.Collections.Generic;
 using System.Data;
 
 namespace nORM
