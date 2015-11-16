@@ -3,13 +3,17 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class RenamedColumn : Internals.Builder, IColumnDefinion
+    public sealed class RenamedColumn : Buildable, IColumnDefinion
     {
-        private readonly IColumnDefinion baseColumn;
+        private readonly IUnnamedColumnDefinion baseColumn;
 
         private readonly LocalIdentifier AS;
 
-        internal RenamedColumn(IColumnDefinion Base, LocalIdentifier Alias)
+        Buildable IColumnDefinion.Definion => this;
+
+        Buildable IUnnamedColumnDefinion.Definion => baseColumn.Definion;
+
+        internal RenamedColumn(IUnnamedColumnDefinion Base, LocalIdentifier Alias)
         {
             if (Alias == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
             baseColumn = Base;
@@ -20,7 +24,7 @@ namespace MakeSQL
         {
             yield return "(";
 
-            var subquery = baseColumn.Builder.Compile(LanguageContext);
+            var subquery = baseColumn.Definion.Compile(LanguageContext);
             while (subquery.MoveNext()) yield return subquery.Current;
 
             yield return ") AS ";
@@ -32,6 +36,6 @@ namespace MakeSQL
 
     public static class ColumnExtensions
     {
-        public static RenamedColumn AS(this IColumnDefinion Self, LocalIdentifier Alias) => new RenamedColumn(Self, Alias);
+        public static RenamedColumn AS(this IUnnamedColumnDefinion Self, LocalIdentifier Alias) => new RenamedColumn(Self, Alias);
     }
 }

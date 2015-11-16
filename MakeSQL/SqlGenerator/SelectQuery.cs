@@ -1,21 +1,19 @@
-﻿using MakeSQL.Internals;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class SelectQuery : Builder, IQuery
+    public sealed class SelectQuery : Buildable, IQuery
     {
         private ISelectSource source;
         private IColumnDefinion[] fields;
+#warning string???
         private string[] where;
 #warning long?
         private int? top = null;
 
 #warning add overload with QualifiedIdentifier
-        /// <summary>
-        /// Creates a simple select query which can be extended or used as a subquery
-        /// </summary>
+        /// <summary> Creates a simple select query which can be extended or used as a subquery </summary>
         /// <param name="Source"> A qualified name of table/view or a subquery</param>
         public SelectQuery(ISelectSource Source, params IColumnDefinion[] Fields)
         {
@@ -80,7 +78,7 @@ namespace MakeSQL
         public SelectQuery Any()
         {
 #warning constant name :(
-            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)));
+            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)).AS("Result"));
         }
 
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
@@ -88,12 +86,12 @@ namespace MakeSQL
             yield return "SELECT ";
             for (int i = 0; i < fields.Length; i++)
             {
-                var field = fields[i].Builder.Compile(LanguageContext);
+                var field = fields[i].Definion.Compile(LanguageContext);
                 while (field.MoveNext()) yield return field.Current;                  
                 if (i < fields.Length - 1) yield return ", ";
             }
             yield return " FROM ";
-            var From = source.Builder.Compile(LanguageContext);
+            var From = source.Definion.Compile(LanguageContext);
             while (From.MoveNext()) yield return From.Current;
 
             if (where?.Length > 0)

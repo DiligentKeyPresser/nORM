@@ -1,16 +1,17 @@
-﻿using MakeSQL.Internals;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public class Cast : Builder, IColumnDefinion
+    public class Cast : Buildable, IUnnamedColumnDefinion
     {
         public Type TargetType { get; }
 
-        private readonly IColumnDefinion Argument;
+        public Buildable Definion => this;
 
-        public Cast(IColumnDefinion Arg, Type TargetType)
+        private readonly IUnnamedColumnDefinion Argument;
+
+        public Cast(IUnnamedColumnDefinion Arg, Type TargetType)
         {
             this.TargetType = TargetType;
             Argument = Arg;
@@ -19,7 +20,7 @@ namespace MakeSQL
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "CAST ( ";
-            var arg = Argument.Builder.Compile(LanguageContext);
+            var arg = Argument.Definion.Compile(LanguageContext);
             while (arg.MoveNext()) yield return arg.Current;            
             yield return " AS ";
             yield return LanguageContext.GetTypeName(TargetType);

@@ -1,42 +1,19 @@
-﻿using MakeSQL.Internals;
-using System.Collections.Generic;
-using System.Text;
-
-namespace MakeSQL
+﻿namespace MakeSQL
 {
-
-#warning separate file
-    namespace Internals
+    public interface ISelectSource
     {
-#warning probably we dont need this anymore
-        public interface IBuildable
-        {
-            Builder Builder { get; }
-        }
-
-        public abstract class Builder : IBuildable
-        {
-            internal Builder() { }
-
-            Builder IBuildable.Builder => this;
-
-            internal abstract IEnumerator<string> Compile(SQLContext LanguageContext);
-
-            internal string Build(SQLContext LanguageContext)
-            {
-                var builder = new StringBuilder();
-                var enumerator = Compile(LanguageContext);
-
-                while (enumerator.MoveNext())
-                    builder.Append(enumerator.Current);
-                return builder.ToString();                                    
-            }
-        }
+        Buildable Definion { get; }
     }
 
-    public interface ISelectSource : IBuildable { }
+    public interface IColumnDefinion : IUnnamedColumnDefinion
+    {
+        Buildable Definion { get; }
+    }
 
-    public interface IColumnDefinion : IBuildable { }
+    public interface IUnnamedColumnDefinion
+    {
+        Buildable Definion { get; }
+    }
 
     public interface IQuery
     {

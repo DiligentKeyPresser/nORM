@@ -1,12 +1,13 @@
-﻿using MakeSQL.Internals;
+﻿using System;
 using System.Collections.Generic;
 
 namespace MakeSQL
 {
-#warning must be wrapped into renamed column
-    public class Constant : Builder, IColumnDefinion
+    public class Constant : Buildable, IUnnamedColumnDefinion
     {
         public object Value { get; }
+
+        public Buildable Definion => this;
 
         public Constant(object Value) { this.Value = Value; }
 

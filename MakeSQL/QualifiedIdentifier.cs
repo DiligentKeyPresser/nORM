@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace MakeSQL
 {
 #warning name can be assigned to an object which is not a valid ISelectSource
-    public sealed class QualifiedIdentifier : Internals.Builder, ISelectSource
+    public sealed class QualifiedIdentifier : Buildable, ISelectSource
     {
 #warning validation?
         /// <summary> Name of the object </summary>
@@ -15,6 +15,8 @@ namespace MakeSQL
 #warning validation?
         /// <summary> Schema name </summary>
         public string Schema { get; }
+
+        public Buildable Definion => this;
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>
         private readonly Dictionary<SQLContext, string> CachedNames = new Dictionary<SQLContext, string>();

@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class SubQuery : Internals.Builder, ISelectSource
+    public sealed class SubQuery : Buildable, ISelectSource
     {
         private readonly SelectQuery baseQuery;
 
         private readonly LocalIdentifier AS;
+
+        public Buildable Definion => this;
 
         internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
         {

@@ -1,4 +1,4 @@
-﻿using MakeSQL.Internals;
+﻿using System;
 using System.Collections.Generic;
 
 namespace MakeSQL
@@ -9,13 +9,15 @@ namespace MakeSQL
         CountBig
     }
 
-    public class SQLFunctionCall : Builder, IColumnDefinion
+    public class SQLFunctionCall : Buildable, IUnnamedColumnDefinion
     {
         public SqlFunction Function { get; }
 
-        private readonly IColumnDefinion[] Arguments;
+        public Buildable Definion => this;
 
-        public SQLFunctionCall(SqlFunction Func, params IColumnDefinion[] Args)
+        private readonly IUnnamedColumnDefinion[] Arguments;
+
+        public SQLFunctionCall(SqlFunction Func, params IUnnamedColumnDefinion[] Args)
         {
             Function = Func;
             Arguments = Args;
@@ -27,7 +29,7 @@ namespace MakeSQL
             yield return "( ";
             for (int i = 0; i < Arguments.Length; i++)
             {
-                var arg = Arguments[i].Builder.Compile(LanguageContext);
+                var arg = Arguments[i].Definion.Compile(LanguageContext);
                 while (arg.MoveNext()) yield return arg.Current;
                 if (i < Arguments.Length - 1) yield return ", ";
             }

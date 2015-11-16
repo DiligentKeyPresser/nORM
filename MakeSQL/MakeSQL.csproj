@@ -45,6 +45,7 @@
     <Compile Include="QualifiedIdentifier.cs" />
     <Compile Include="RenamedColumn.cs" />
     <Compile Include="SimpleIdentifier.cs" />
+    <Compile Include="SqlGenerator\Builder.cs" />
     <Compile Include="SqlGenerator\PostgreSQL.cs" />
     <Compile Include="SqlGenerator\SQLContext.cs" />
     <Compile Include="SqlGenerator\SelectQuery.cs" />

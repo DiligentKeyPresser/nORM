@@ -3,11 +3,13 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class LocalIdentifier : Internals.Builder, IColumnDefinion
+    public sealed class LocalIdentifier : Buildable, IColumnDefinion
     {
 #warning validation?
         /// <summary> Name of the object </summary>
         public string Identifier { get; }
+
+        public Buildable Definion => this;
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>
         private readonly Dictionary<SQLContext, string> CachedNames = new Dictionary<SQLContext, string>();
