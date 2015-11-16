@@ -1,4 +1,4 @@
-﻿using nORM.SQL;
+﻿using MakeSQL;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -239,9 +239,9 @@ namespace nORM
 
             if (isCount || isAny)
             {// these functions entirely replace selection list
-                if (isLongCount) PredicatedTarget = PredicatedTarget.MakeLongCount();
-                else if (isCount) PredicatedTarget = PredicatedTarget.MakeCount();
-                else if (isAny) PredicatedTarget = PredicatedTarget.MakeAny();
+                if (isLongCount) PredicatedTarget = PredicatedTarget.NewSelect(new SQLFunctionCall(SqlFunction.CountBig, new Constant(1)));
+                else if (isCount) PredicatedTarget = PredicatedTarget.NewSelect(new SQLFunctionCall(SqlFunction.Count, new Constant(1)));
+                else if (isAny) PredicatedTarget = PredicatedTarget.Any();
 
                 var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.ToString());
                 return deMorgan ? !(bool)res : res;

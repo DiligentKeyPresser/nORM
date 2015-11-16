@@ -1,19 +1,21 @@
-﻿using System;
+﻿using MakeSQL;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-
-// Типы для формирования контрактов
+using System.Reflection;
 
 namespace nORM
 {
+    /// <summary> SQL command notifier. </summary>
+    /// <param name="CommandText"> Text of the command. </param>
+    public delegate void BasicCommandHandler(string CommandText);
+
     /// <summary>
     /// Операции которые можно выполнять над базой данных.
     /// Интерфейсы контракта базы данных должны наследоваться от этого интерфейса.
     /// </summary>
     public interface IDatabase
     {
-        // Интерфейс не замещается абстрактным DatabaseContext поскольку интерфейсы БД должны наследоваться от этого интерфейса
-
         /// <summary> Событие позволяет производить мониторинг выполняемых с помощью данного контекста запросов к бд. </summary>
         event BasicCommandHandler BeforeCommandExecute;
     }
@@ -28,7 +30,7 @@ namespace nORM
         /// <summary>
         /// Gets a name of the table, based on contract declaration.
         /// </summary>
-        string Name { get; }
+        QualifiedIdentifier Name { get; }
     }
 
     /// <summary>
@@ -67,15 +69,18 @@ namespace nORM
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class TableAttribute : Attribute
     {
-        /// <summary>
-        /// Имя представляемой таблицы.
-        /// </summary>
-        public string TableName { get; }
+#warning remove
+        /// <summary> Internal metfod to extract a table name from database contract dynamically. </summary>
+        /// <param name="contract_property"> Property representing the table in the database contract. </param>
+        internal static QualifiedIdentifier extract_name_from_property(PropertyInfo contract_property)
+        {
+            return IsDefined(contract_property, typeof(TableAttribute)) ?
+                (GetCustomAttribute(contract_property, typeof(TableAttribute)) as TableAttribute).TableName :
+                null;
+        }
 
-        /// <summary>
-        /// Имя схемы, которой таблица сопоставлена в бд. По умолчанию dbo.
-        /// </summary>
-        public string SchemaName { get; set; }
+        /// <summary> Name of the table. </summary>
+        public QualifiedIdentifier TableName { get; }
 
         /// <summary>
         /// Атрибут для разметки контракта базы данных.
@@ -84,11 +89,7 @@ namespace nORM
         /// Свойство должно быть только для чтения.
         /// </summary>
         /// <param name="Name">Имя представляемой таблицы.</param>
-        public TableAttribute(string Name)
-        {
-            TableName = Name;
-            SchemaName = string.Empty;
-        }
+        public TableAttribute(QualifiedIdentifier Name) { TableName = Name; }
     }
 
 #warning А нужен ли такой атрибут?
@@ -99,17 +100,15 @@ namespace nORM
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class FieldAttribute : Attribute
     {
-        /// <summary>
-        /// Номер колонки в таблице
-        /// </summary>
-        public string ColumnName { get; }
+        /// <summary> Column name </summary>
+        public LocalIdentifier ColumnName { get; }
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
         /// Тип возвращаемого помечаемым свойством результата должен соответствовать типу данных в базе.
         /// </summary>
         /// <param name="column">Имя колонки в таблице</param>
-        public FieldAttribute(string column)
+        public FieldAttribute(LocalIdentifier column)
         {
             ColumnName = column;
         }

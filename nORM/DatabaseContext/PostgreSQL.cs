@@ -1,4 +1,5 @@
-﻿using nORM.SQL;
+﻿using MakeSQL;
+using nORM.SQL;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -19,6 +20,6 @@ namespace nORM
 
         protected override IDbConnection MakeConnection() => new NpgsqlConnection(ConnectionString);
 
-        internal override IQueryFactory GetQueryFactory() => PostgreSQLQueryFactory.Singleton;
+        internal override SQLContext GetQueryFactory() => PostgreSQLContext.Singleton;
     }
 }

@@ -37,6 +37,7 @@
     <!-- A reference to the entire .NET Framework is automatically included -->
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cast.cs" />
     <Compile Include="Constant.cs" />
     <Compile Include="FunctionCall.cs" />
     <Compile Include="Interface.cs" />

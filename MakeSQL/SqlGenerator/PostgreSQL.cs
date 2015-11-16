@@ -4,13 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MakeSQL.SqlGenerator
+namespace MakeSQL
 {
-    internal sealed class PostgreSQLContext : SQLContext
+    public sealed class PostgreSQLContext : SQLContext
     {
         #region Singleton
         private PostgreSQLContext() { }
         public static PostgreSQLContext Singleton { get; } = new PostgreSQLContext();
-        #endregion
+        #endregion        
     }
 }

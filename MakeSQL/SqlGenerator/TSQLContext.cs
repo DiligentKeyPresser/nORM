@@ -1,20 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace MakeSQL.SqlGenerator
+namespace MakeSQL
 {
-    class TSQLContext
+    public sealed class TSQLContext : SQLContext
     {
         #region Singleton
         private TSQLContext() { }
         public static TSQLContext Singleton { get; } = new TSQLContext();
         #endregion
 
-        internal virtual string LeftEscapingSymbol => "[";
-        internal virtual string RightEscapingSymbol => "]";
+        internal override string LeftEscapingSymbol => "[";
+        internal override string RightEscapingSymbol => "]";
+
+        internal override string GetFunctionName(SqlFunction Function)
+        {
+            switch (Function)
+            {
+                case SqlFunction.CountBig: return "COUNT_BIG";
+                default: return base.GetFunctionName(Function);
+            }
+        }
+
+        internal override string GetTypeName(Type type)
+        {
+            switch (type.Name)
+            {
+                case nameof(Boolean): return "BIT";
+                default: return base.GetTypeName(type);
+            }
+        }
 
     }
 }

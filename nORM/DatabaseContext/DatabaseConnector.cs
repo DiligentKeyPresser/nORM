@@ -1,4 +1,4 @@
-﻿using nORM.SQL;
+﻿using MakeSQL;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -27,7 +27,7 @@ namespace nORM
         /// <summary>
         /// Return Query Factory apropriate for the database engine.
         /// </summary>
-        internal abstract IQueryFactory GetQueryFactory();
+        internal abstract SQLContext GetQueryFactory();
 
         // cant inherit this class outside the library
         internal Connector() { }

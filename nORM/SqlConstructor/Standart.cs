@@ -70,7 +70,7 @@ namespace nORM
                         if (!Attribute.IsDefined(e_member.Member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
 #endif
 #warning не самый быстрый способ. не закешировать ли?
-                        return new string[] { EscapeIdentifier(null, (Attribute.GetCustomAttribute(e_member.Member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName) };
+                        return new string[] { EscapeIdentifier(null, /*(Attribute.GetCustomAttribute(e_member.Member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName)*/"") };
                     }
 
 

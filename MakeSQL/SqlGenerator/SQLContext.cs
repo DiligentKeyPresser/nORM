@@ -18,6 +18,15 @@ namespace MakeSQL
             }
         }
 
+        internal virtual string GetTypeName(Type type)
+        {
+            switch (type.Name)
+            {
+                case nameof(Boolean) : return "BOOLEAN";
+                default: throw new NotSupportedException($"The given type (`{type.Name}`) is not supporthed in the surrent context.");
+            }
+        }
+
         internal virtual IEnumerator<string> EscapeLiteral(object Value)
         {
             if (Value.GetType() == typeof(int))

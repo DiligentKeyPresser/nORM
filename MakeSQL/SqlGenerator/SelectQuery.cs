@@ -9,6 +9,8 @@ namespace MakeSQL
         private ISelectSource source;
         private IColumnDefinion[] fields;
         private string[] where;
+#warning long?
+        private int? top = null;
 
 #warning add overload with QualifiedIdentifier
         /// <summary>
@@ -24,12 +26,12 @@ namespace MakeSQL
         /// <summary>
         /// Creates a copy of the given query
         /// </summary>
-        public SelectQuery Clone() => new SelectQuery(source, fields) { where = where };
+        public SelectQuery Clone() => new SelectQuery(source, fields) { where = where, top = top };
 
         /// <summary>
         /// Creates a SELECT query (based on the given one) with different columns 
         /// </summary>
-        public IQuery NewSelect(params IColumnDefinion[] NewFields)
+        public SelectQuery NewSelect(params IColumnDefinion[] NewFields)
         {
             var clone = Clone();
             clone.fields = NewFields;
@@ -38,14 +40,42 @@ namespace MakeSQL
 
         public SelectQuery Where(string Clause)
         {
-            var clone = Clone();
+            if (top == null)
+            {
+                var clone = Clone();
 
-            var new_where = new string[where.Length + 1];
-            Array.Copy(where, new_where, where.Length);
-            new_where[where.Length] = Clause;
+                var new_where = new string[where.Length + 1];
+                Array.Copy(where, new_where, where.Length);
+                new_where[where.Length] = Clause;
 
-            clone.where = new_where;
-            return clone;
+                clone.where = new_where;
+                return clone;
+            }
+            else
+            {
+#warning constant name :(
+                var clone = new SelectQuery(this.AS("T"), fields);
+                var new_where = new string[] { Clause };
+                clone.where = new_where;
+                return clone;
+            }
+        }
+
+        public SelectQuery Top(int count)
+        {
+            if (top.HasValue && top < count) return this;
+            else
+            {
+                var clone = Clone();
+                clone.top = count;
+                return clone;
+            }
+        }
+
+        public SelectQuery Any()
+        {
+#warning constant name :(
+            return new SelectQuery(Top(1).NewSelect(new Constant(1)).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)));
         }
 
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
