@@ -20,9 +20,9 @@ namespace MakeSQL
 
             Builder IBuildable.Builder => this;
 
-            internal abstract IEnumerator<string> Compile(QueryFactory LanguageContext);
+            internal abstract IEnumerator<string> Compile(SQLContext LanguageContext);
 
-            internal string Build(QueryFactory LanguageContext)
+            internal string Build(SQLContext LanguageContext)
             {
                 var builder = new StringBuilder();
                 var enumerator = Compile(LanguageContext);
@@ -42,6 +42,6 @@ namespace MakeSQL
     {
         /// <summary> Builds a query text </summary>
         /// <param name="LanguageContext"> A factory corresponding to current SQL flavor </param>
-        string Build(QueryFactory LanguageContext);
+        string Build(SQLContext LanguageContext);
     }
 }

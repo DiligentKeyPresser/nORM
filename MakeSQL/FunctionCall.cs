@@ -21,7 +21,7 @@ namespace MakeSQL
             Arguments = Args;
         }
 
-        internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
+        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return LanguageContext.GetFunctionName(Function);
             yield return "( ";

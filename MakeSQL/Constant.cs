@@ -9,7 +9,7 @@ namespace MakeSQL
 
         public Constant(object Value) { }
 
-        internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
+        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             var literal = LanguageContext.EscapeLiteral(Value);
             while (literal.MoveNext()) yield return literal.Current;

@@ -16,7 +16,7 @@ namespace MakeSQL
             AS = Alias;
         }
 
-        internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
+        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "(";
 

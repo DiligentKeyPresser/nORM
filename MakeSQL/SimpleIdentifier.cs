@@ -10,7 +10,7 @@ namespace MakeSQL
         public string Identifier { get; }
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>
-        private readonly Dictionary<QueryFactory, string> CachedNames = new Dictionary<QueryFactory, string>();
+        private readonly Dictionary<SQLContext, string> CachedNames = new Dictionary<SQLContext, string>();
 
         /// <summary> for debug purposes </summary>
         public override string ToString() => Identifier;
@@ -18,7 +18,7 @@ namespace MakeSQL
         /// <summary>
         /// Gets a text representation of the identifier for a given SQL flavor
         /// </summary>
-        public string Escape(QueryFactory LanguageContext)
+        public string Escape(SQLContext LanguageContext)
         {
             string cached = null;
             if (!CachedNames.TryGetValue(LanguageContext, out cached))
@@ -26,7 +26,7 @@ namespace MakeSQL
             return cached;
         }
 
-        internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
+        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return Escape(LanguageContext);
         }

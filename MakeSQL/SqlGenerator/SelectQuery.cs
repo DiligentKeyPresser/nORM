@@ -48,7 +48,7 @@ namespace MakeSQL
             return clone;
         }
 
-        internal override IEnumerator<string> Compile(QueryFactory LanguageContext)
+        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "SELECT ";
             for (int i = 0; i < fields.Length; i++)
@@ -77,7 +77,7 @@ namespace MakeSQL
             }
         }
 
-        string IQuery.Build(QueryFactory LanguageContext) => Build(LanguageContext);
+        string IQuery.Build(SQLContext LanguageContext) => Build(LanguageContext);
     }
 
 }

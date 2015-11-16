@@ -43,8 +43,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QualifiedIdentifier.cs" />
     <Compile Include="SimpleIdentifier.cs" />
-    <Compile Include="SqlGenerator\Abstract.cs" />
+    <Compile Include="SqlGenerator\PostgreSQL.cs" />
+    <Compile Include="SqlGenerator\SQLContext.cs" />
     <Compile Include="SqlGenerator\SelectQuery.cs" />
+    <Compile Include="SqlGenerator\TSQLContext.cs" />
     <Compile Include="SubQuery.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
