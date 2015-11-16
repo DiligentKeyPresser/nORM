@@ -7,6 +7,7 @@ namespace nORM
 {
     namespace SQL
     {
+        [Obsolete("old", true)]
         internal abstract class Query
         {
             // The produced string for any particular query can be reused any time, 
@@ -39,6 +40,7 @@ namespace nORM
             protected abstract string Build();
         }
 
+        [Obsolete("old", true)]
         internal abstract class SelectQuery: Query
         {
             protected abstract SelectQuery Clone();
@@ -52,6 +54,7 @@ namespace nORM
             public abstract SelectQuery MakeAny(); 
         }
 
+        [Obsolete("old", true)]
         internal interface IQueryFactory
         {
             SelectQuery Select(string source, string[] fields, string SourceAlias);

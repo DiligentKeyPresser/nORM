@@ -6,6 +6,7 @@ namespace nORM
 {
     namespace SQL
     {
+        [Obsolete("old", true)]
         internal abstract class StandartSQLQueryFactory : IQueryFactory
         {
             public virtual string EscapeIdentifier(string schema, string name)
@@ -216,6 +217,7 @@ namespace nORM
             public abstract SelectQuery Select(string source, string[] fields, string SourceAlias);
         }
 
+        [Obsolete("old", true)]
         internal abstract class StandartSQLSelectQuery : SelectQuery
         {
             protected readonly string source;

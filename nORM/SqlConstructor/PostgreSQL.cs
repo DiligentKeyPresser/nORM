@@ -6,6 +6,7 @@ namespace nORM
 {
     namespace SQL
     {
+        [Obsolete("old", true)]
         internal sealed class PostgreSQLQueryFactory : StandartSQLQueryFactory
         {
             #region Singleton
@@ -16,6 +17,7 @@ namespace nORM
             public override SelectQuery Select(string source, string[] fields, string SourceAlias) => new PostgreSQLSelectQuery(source, fields, SourceAlias);
         }
 
+        [Obsolete("old", true)]
         internal sealed class PostgreSQLSelectQuery : StandartSQLSelectQuery
         {
             private static readonly string[] PostgreSQLAnySelectClause = new string[] { "TOP 1 1 AS P" };

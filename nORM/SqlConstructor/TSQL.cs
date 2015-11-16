@@ -6,6 +6,7 @@ namespace nORM
 {
     namespace SQL
     {
+        [Obsolete("old", true)]
         internal sealed class TSQLQueryFactory : StandartSQLQueryFactory
         {
             #region Singleton
@@ -33,6 +34,7 @@ namespace nORM
             }
         }
 
+        [Obsolete("old", true)]
         internal sealed class TSQLSelectQuery : StandartSQLSelectQuery
         {
             private static readonly string[] TSQLLongCountClause = new string[] { "COUNT_BIG(*)" };
