@@ -1,15 +1,19 @@
 ﻿using nORM;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 namespace test_project
 {
-    public interface ITable1Row
+    public interface ITable1Row : ITable1RowData
     {
         [Field("id")]
         int ID { get; }
+    }
 
+    public interface ITable1RowData
+    {
         [Field("count")]
         int Count { get; }
 
@@ -17,7 +21,7 @@ namespace test_project
         string Name { get; }
     }
 
-    public interface ITestTable : ITable<ITable1Row>
+    public interface ITestTable : ITable<ITable1Row>, IInsertable<ITable1RowData>
     {
 
     }
@@ -25,7 +29,7 @@ namespace test_project
 
     public interface ITestDB : IDatabase
     {
-        [Table("table1")]
+        [Table(".table1")]
         ITestTable Table1 { get; }
     }
 

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using nORM.SQL;
+using MakeSQL;
 
 namespace nORM
 {
@@ -19,6 +19,6 @@ namespace nORM
 
         protected override IDbConnection MakeConnection() => new SqlConnection(ConnectionString);
 
-        internal override IQueryFactory GetQueryFactory() => TSQLQueryFactory.Singleton;
+        internal override SQLContext GetQueryFactory() => TSQLContext.Singleton;
     }
 }

@@ -59,15 +59,18 @@
     <Compile Include="PredicateTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Provider.cs" />
-    <Compile Include="SqlConstructor\Interface.cs" />
-    <Compile Include="SqlConstructor\PostgreSQL.cs" />
-    <Compile Include="SqlConstructor\Standart.cs" />
-    <Compile Include="SqlConstructor\TSQL.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExpLess\ExpLess.csproj">
       <Project>{c13ac3f6-2634-48c5-bd1f-abec9f1344e0}</Project>
       <Name>ExpLess</Name>
+      <Private>True</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\MakeSQL\MakeSQL.csproj">
+      <Project>{01cf49f5-fc97-41b2-867f-7346bdb3491b}</Project>
+      <Name>MakeSQL</Name>
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+      <Private>True</Private>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

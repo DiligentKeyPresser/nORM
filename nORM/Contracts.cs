@@ -1,18 +1,21 @@
-﻿using System;
+﻿using MakeSQL;
+using System;
+using System.Collections.Generic;
 using System.Linq;
-
-// Типы для формирования контрактов
+using System.Reflection;
 
 namespace nORM
 {
+    /// <summary> SQL command notifier. </summary>
+    /// <param name="CommandText"> Text of the command. </param>
+    public delegate void BasicCommandHandler(string CommandText);
+
     /// <summary>
     /// Операции которые можно выполнять над базой данных.
     /// Интерфейсы контракта базы данных должны наследоваться от этого интерфейса.
     /// </summary>
     public interface IDatabase
     {
-        // Интерфейс не замещается абстрактным DatabaseContext поскольку интерфейсы БД должны наследоваться от этого интерфейса
-
         /// <summary> Событие позволяет производить мониторинг выполняемых с помощью данного контекста запросов к бд. </summary>
         event BasicCommandHandler BeforeCommandExecute;
     }
@@ -27,7 +30,33 @@ namespace nORM
         /// <summary>
         /// Gets a name of the table, based on contract declaration.
         /// </summary>
-        string Name { get; }
+        QualifiedIdentifier Name { get; }
+    }
+
+    /// <summary>
+    /// Extension to the table contract.
+    /// Used to define a field subset which can be used in the INSERT statement.
+    /// </summary>
+    /// <typeparam name="RowSubcontract"> a field subset without primary keys and evaluated columns. </typeparam>
+    public interface IInsertable<RowSubcontract>
+    {
+        /// <summary>
+        /// A single INSERT query
+        /// </summary>
+        /// <param name="Row"> A single row to be inserted </param>
+        void Insert(RowSubcontract Row);
+
+        /// <summary>
+        /// An INSERT query with table constructor 
+        /// </summary>
+        /// <param name="Rows"> A collection of rows to insert </param>
+        void Insert(IEnumerable<RowSubcontract> Rows);
+
+        /// <summary>
+        /// An INSERT operation with subquery used as a source.
+        /// </summary>
+        /// <param name="Source"> A subquery to select source rows </param>
+        void Insert(IQueryable<RowSubcontract> Source);
     }
 
 #warning сделать базовый атрибут с недопустимостью множественного применения
@@ -40,15 +69,20 @@ namespace nORM
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class TableAttribute : Attribute
     {
-        /// <summary>
-        /// Имя представляемой таблицы.
-        /// </summary>
-        public string TableName { get; }
+#warning remove
+        /// <summary> Internal metfod to extract a table name from database contract dynamically. </summary>
+        /// <param name="contract_property"> Property representing the table in the database contract. </param>
+        internal static QualifiedIdentifier extract_name_from_property(PropertyInfo contract_property)
+        {
+            return IsDefined(contract_property, typeof(TableAttribute)) ?
+                (GetCustomAttribute(contract_property, typeof(TableAttribute)) as TableAttribute).TableName :
+                null;
+        }
 
-        /// <summary>
-        /// Имя схемы, которой таблица сопоставлена в бд. По умолчанию dbo.
-        /// </summary>
-        public string SchemaName { get; set; }
+        /// <summary> Name of the table. </summary>
+        internal QualifiedIdentifier TableName => fieldTableName;
+
+        private readonly string fieldTableName;
 
         /// <summary>
         /// Атрибут для разметки контракта базы данных.
@@ -56,12 +90,8 @@ namespace nORM
         /// Свойство должно возвращать специализацию Table интерфейсом контракта строки таблицы.
         /// Свойство должно быть только для чтения.
         /// </summary>
-        /// <param name="Name">Имя представляемой таблицы.</param>
-        public TableAttribute(string Name)
-        {
-            TableName = Name;
-            SchemaName = string.Empty;
-        }
+        /// <param name="Name"> Optionally qualified name of the table. </param>
+        public TableAttribute(string Name) { fieldTableName = Name; }
     }
 
 #warning А нужен ли такой атрибут?
@@ -72,10 +102,10 @@ namespace nORM
     [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
     public sealed class FieldAttribute : Attribute
     {
-        /// <summary>
-        /// Номер колонки в таблице
-        /// </summary>
-        public string ColumnName { get; }
+        /// <summary> Column name </summary>
+        internal LocalIdentifier ColumnName => fieldColumnName;
+
+        private readonly string fieldColumnName;
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
@@ -84,7 +114,7 @@ namespace nORM
         /// <param name="column">Имя колонки в таблице</param>
         public FieldAttribute(string column)
         {
-            ColumnName = column;
+            fieldColumnName = column;
         }
     }
 

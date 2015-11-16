@@ -1,8 +1,7 @@
-﻿using nORM.SQL;
+﻿using MakeSQL;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-
 using static ExpLess.PartialEvaluator;
 
 #warning сунуть как можно больше проверок в дебаг
@@ -48,7 +47,14 @@ namespace nORM
 
         internal RowSource<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = Context.QueryFactory.CreatePredicate<RowContract>(PreEvaluate(Condition));
+            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(Condition), null, member=>
+            {
+#if DEBUG
+                if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+            });
 #warning add Debug output
             if (sql_predicate == null) return null;
 
@@ -60,25 +66,24 @@ namespace nORM
     internal class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
     {
         private static readonly FieldAttribute[] FieldAttributes;
-
-        private static string[] BuildSelectionList(DatabaseContext ConnectionContext) => FieldAttributes.Select(a => ConnectionContext.QueryFactory.EscapeIdentifier(null, a.ColumnName)).ToArray();
+        private static readonly LocalIdentifier[] FieldNames;
 
         static Table()
         {
-            FieldAttributes = typeof(RowContract).GetProperties().Where(p => Attribute.IsDefined(p, TypeOf.FieldAttribute))
-                .Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
+            FieldAttributes = RowContractInflater<RowContract>.ContractFields.Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
+            FieldNames = FieldAttributes.Select(f => f.ColumnName).ToArray();
         }
 
         /// <summary>
         /// Gets a name of the table, based on contract declaration.
         /// </summary>
-        public string Name { get; }
+        public QualifiedIdentifier Name { get; }
 
         /// <summary>
         /// This constructor will be called dynamically
         /// </summary>
-        internal Table(DatabaseContext ConnectionContext, string TableName)
-            : base(ConnectionContext, ConnectionContext.QueryFactory.Select(TableName, BuildSelectionList(ConnectionContext), null))
+        internal Table(DatabaseContext ConnectionContext, QualifiedIdentifier TableName)
+            : base(ConnectionContext, new SelectQuery(TableName, FieldNames))
         {
             Name = TableName;            
         }

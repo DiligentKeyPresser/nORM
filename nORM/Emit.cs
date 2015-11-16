@@ -1,5 +1,6 @@
-﻿using nORM.SQL;
+﻿using MakeSQL;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -44,11 +45,11 @@ namespace nORM
         public static readonly Type Queryable = typeof(Queryable);
         public static readonly Type Expression_generic = typeof(Expression<>);
         public static readonly Type IQueryable_generic = typeof(IQueryable<>);
-        public static readonly Type IQueryFactory = typeof(IQueryFactory);
+        public static readonly Type IEnumerable_generic = typeof(IEnumerable<>);
         public static readonly Type ITable_generic = typeof(ITable<>);
         public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
-
-
+        public static readonly Type IInsertable = typeof(IInsertable<>);
+        
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>
@@ -57,7 +58,7 @@ namespace nORM
         /// <summary>
         /// Basic table constructor arguments
         /// </summary>
-        public static readonly Type[] TableArgumentSet = new Type[] { DatabaseContext, String };
+        public static readonly Type[] TableArgumentSet = new Type[] { DatabaseContext, typeof(QualifiedIdentifier) };
 
         /// <summary>
         /// Массив типов аргументов конструктора строки
@@ -84,13 +85,13 @@ namespace nORM
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
                 "DBDynamic_" + ContractType.Name, 
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout, 
-                TypeOf.DatabaseContext, new Type[] { ContractType });
+                typeof(DatabaseContext<DbContract>), new Type[] { ContractType });
 
 #warning проверить чтобы все члены были размечены
 #warning хорошо бы проверять контракт целиком, чтобы избежать проверок в рантайме
 
             // генерируем конструктор 
-            var BaseConstructor = TypeOf.DatabaseContext.GetConstructor(
+            var BaseConstructor = typeof(DatabaseContext<DbContract>).GetConstructor(
                 BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, 
                 null, TypeOf.DBContextArgumentSet, null);
             
@@ -109,46 +110,19 @@ namespace nORM
 
             // генерируем свойства - таблицы
 
-            foreach (var TableProperty in ContractType.GetProperties().Where(prop => Attribute.IsDefined(prop, TypeOf.TableAttribute)))
-            {             
+            foreach (var TableProperty in DatabaseContext<DbContract>.Tables)
+            {
+#warning move outside    
                 if (TableProperty.CanWrite) 
                     throw new InvalidContractException(ContractType, string.Format("table property ({0}) must be readonly", TableProperty.Name));
 
-               
-                var TAttr = Attribute.GetCustomAttribute(TableProperty, TypeOf.TableAttribute) as TableAttribute;
-
-                var TableType = TableProperty.PropertyType;
-
-                var ITableInterface = TableContractHelpers.ExtractBasicTableInterface(TableType);
-                if (ITableInterface == null) throw new InvalidContractException(TableType, "table contract must be an interface of ITable<>");
-
-                var RowContract = ITableInterface.GetGenericArguments()[0];
-
-                var Tableconstructor = TypeOf.TableContractInflater.MakeGenericType(TableType, RowContract).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
-                    
-                    TableProperty.PropertyType.GetConstructor(
-                    BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance, 
-                    null, TypeOf.TableArgumentSet, null);
-
                 var field = ClassBuilder.DefineField("__table_" + TableProperty.Name, TableProperty.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
-                
-                consgen.Emit(OpCodes.Ldarg_0); // this для stfld
-                consgen.Emit(OpCodes.Ldarg_0); // this для конструктора
-                consgen.Emit(OpCodes.Ldarg_0); // this для Ldfld
-
-                consgen.Emit(OpCodes.Ldfld, TypeOf.DatabaseContext.GetField(nameof(DatabaseContext.QueryFactory), BindingFlags.Instance | BindingFlags.NonPublic)); // this для EscapeIdentifier
-                consgen.Emit(OpCodes.Ldstr, TAttr.SchemaName);
-                consgen.Emit(OpCodes.Ldstr, TAttr.TableName);
-                consgen.Emit(OpCodes.Callvirt, TypeOf.IQueryFactory.GetMethod(nameof(IQueryFactory.EscapeIdentifier)));
-                                
-                consgen.Emit(OpCodes.Call, Tableconstructor);//был newobj
-                consgen.Emit(OpCodes.Stfld, field);
 
                 var prop = ClassBuilder.DefineProperty(TableProperty.Name, TableProperty.Attributes, TableProperty.PropertyType, null);
-                
+
                 var getter = ClassBuilder.DefineMethod(
-                    "get_" + TableProperty.Name, 
-                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.Virtual, 
+                    "get_" + TableProperty.Name,
+                    MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig | MethodAttributes.Virtual,
                     TableProperty.PropertyType, Type.EmptyTypes);
 
                 var gettergen = getter.GetILGenerator();
