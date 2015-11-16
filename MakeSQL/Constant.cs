@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
+#warning must be wrapped into renamed column
     public class Constant : Builder, IColumnDefinion
     {
         public object Value { get; }

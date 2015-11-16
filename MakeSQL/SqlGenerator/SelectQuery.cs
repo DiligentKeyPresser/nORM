@@ -80,7 +80,7 @@ namespace MakeSQL
         public SelectQuery Any()
         {
 #warning constant name :(
-            return new SelectQuery(Top(1).NewSelect(new Constant(1)).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)));
+            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)));
         }
 
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
