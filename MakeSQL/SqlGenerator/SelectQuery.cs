@@ -44,9 +44,14 @@ namespace MakeSQL
             {
                 var clone = Clone();
 
-                var new_where = new string[where.Length + 1];
-                Array.Copy(where, new_where, where.Length);
-                new_where[where.Length] = Clause;
+                string[] new_where = null;
+                if (where == null) new_where = new string[] { Clause };
+                else
+                {
+                    new_where = new string[where.Length + 1];
+                    Array.Copy(where, new_where, where.Length);
+                    new_where[where.Length] = Clause;
+                }
 
                 clone.where = new_where;
                 return clone;
@@ -91,7 +96,7 @@ namespace MakeSQL
             var From = source.Builder.Compile(LanguageContext);
             while (From.MoveNext()) yield return From.Current;
 
-            if (where.Length > 0)
+            if (where?.Length > 0)
             {
                 yield return " WHERE ";
                 bool brackets = where.Length > 1;
@@ -107,7 +112,7 @@ namespace MakeSQL
             }
         }
 
-        string IQuery.Build(SQLContext LanguageContext) => Build(LanguageContext);
+        public new string Build(SQLContext LanguageContext) => base.Build(LanguageContext);
     }
 
 }

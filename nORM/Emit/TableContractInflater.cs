@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using MakeSQL;
 
 namespace nORM
 {
@@ -73,7 +74,7 @@ namespace nORM
         /// </summary>
         /// <param name="ConnectionContext"> Database context to send the query </param>
         /// <param name="TableName"> The name of the table in the database </param>
-        public static TableContract Inflate(DatabaseContext ConnectionContext, string TableName) => (TableContract)TableConstructor.Invoke(new object[] { ConnectionContext, TableName });
+        public static TableContract Inflate(DatabaseContext ConnectionContext, QualifiedIdentifier TableName) => (TableContract)TableConstructor.Invoke(new object[] { ConnectionContext, TableName });
     }
 
     internal static class TableContractHelpers

@@ -29,7 +29,7 @@ namespace test_project
 
     public interface ITestDB : IDatabase
     {
-        [Table("table1")]
+        [Table(".table1")]
         ITestTable Table1 { get; }
     }
 

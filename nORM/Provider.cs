@@ -243,7 +243,7 @@ namespace nORM
                 else if (isCount) PredicatedTarget = PredicatedTarget.NewSelect(new SQLFunctionCall(SqlFunction.Count, new Constant(1)));
                 else if (isAny) PredicatedTarget = PredicatedTarget.Any();
 
-                var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.ToString());
+                var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.Build(TargetObject.Context.QueryContext));
                 return deMorgan ? !(bool)res : res;
             }
 

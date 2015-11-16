@@ -7,7 +7,7 @@ namespace MakeSQL
     {
         public object Value { get; }
 
-        public Constant(object Value) { }
+        public Constant(object Value) { this.Value = Value; }
 
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {

@@ -89,7 +89,7 @@ namespace nORM
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
                 "DBDynamic_" + ContractType.Name, 
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout, 
-                TypeOf.DatabaseContext, new Type[] { ContractType });
+                typeof(DatabaseContext<DbContract>), new Type[] { ContractType });
 
 #warning проверить чтобы все члены были размечены
 #warning хорошо бы проверять контракт целиком, чтобы избежать проверок в рантайме

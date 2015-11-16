@@ -80,7 +80,7 @@ namespace nORM
 #warning method name
                 var Tableconstructor = TypeOf.TableContractInflater.MakeGenericType(TableType, RowContract).GetMethod("Inflate", BindingFlags.Public | BindingFlags.Static);
 
-                var TableField = GetType().GetField("__table_" + TableProperty.Name, BindingFlags.NonPublic);
+                var TableField = GetType().GetField("__table_" + TableProperty.Name, BindingFlags.NonPublic | BindingFlags.Instance);
 
                 TableField.SetValue(this, Tableconstructor.Invoke(null, new object[] { this, TableAttribute.extract_name_from_property(TableProperty) }));
             }

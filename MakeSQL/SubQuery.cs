@@ -11,7 +11,7 @@ namespace MakeSQL
 
         internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
         {
-            if (AS == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
+            if (Alias == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
             baseQuery = Base;
             AS = Alias;
         }
@@ -26,7 +26,7 @@ namespace MakeSQL
             yield return ") AS ";
 
             var name = AS.Compile(LanguageContext);
-            while (subquery.MoveNext()) yield return subquery.Current;
+            while (name.MoveNext()) yield return name.Current;
         }
     }
 
