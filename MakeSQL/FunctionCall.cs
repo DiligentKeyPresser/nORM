@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace MakeSQL
 {
@@ -9,15 +8,17 @@ namespace MakeSQL
         CountBig
     }
 
-    public class SQLFunctionCall : Buildable, IUnnamedColumnDefinion
+    public class FunctionCall : Buildable, IUnnamedColumnDefinion
     {
         public SqlFunction Function { get; }
 
+#warning ??
         public Buildable Definion => this;
 
         private readonly IUnnamedColumnDefinion[] Arguments;
 
-        public SQLFunctionCall(SqlFunction Func, params IUnnamedColumnDefinion[] Args)
+#warning do a renamed column return text without AS here?
+        public FunctionCall(SqlFunction Func, params IUnnamedColumnDefinion[] Args)
         {
             Function = Func;
             Arguments = Args;

@@ -9,6 +9,7 @@ namespace MakeSQL
 
         private readonly LocalIdentifier AS;
 
+#warning ??
         public Buildable Definion => this;
 
         internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
@@ -21,10 +22,16 @@ namespace MakeSQL
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "(";
+#if DEBUG
+            yield return "\r\n ";
+#endif
 
             var subquery = baseQuery.Compile(LanguageContext);
             while (subquery.MoveNext()) yield return subquery.Current;
 
+#if DEBUG
+            yield return "\r\n";
+#endif
             yield return ") AS ";
 
             var name = AS.Compile(LanguageContext);

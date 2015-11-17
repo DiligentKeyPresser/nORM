@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace MakeSQL
 {
@@ -7,6 +6,7 @@ namespace MakeSQL
     {
         public object Value { get; }
 
+#warning ??
         public Buildable Definion => this;
 
         public Constant(object Value) { this.Value = Value; }

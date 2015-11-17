@@ -9,6 +9,7 @@ namespace MakeSQL
         /// <summary> Name of the object </summary>
         public string Identifier { get; }
 
+#warning ??
         public Buildable Definion => this;
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>

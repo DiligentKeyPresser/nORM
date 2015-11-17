@@ -13,6 +13,7 @@ namespace MakeSQL
 
         Buildable IUnnamedColumnDefinion.Definion => baseColumn.Definion;
 
+#warning do a renamed column return text without AS here?
         internal RenamedColumn(IUnnamedColumnDefinion Base, LocalIdentifier Alias)
         {
             if (Alias == null) throw new ArgumentNullException("Name", "Subquery must have a name.");

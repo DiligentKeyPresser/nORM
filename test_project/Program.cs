@@ -39,7 +39,7 @@ namespace test_project
 
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("server", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             Console.WriteLine("partial evaluation");
@@ -62,7 +62,7 @@ namespace test_project
          //   Debugger.Break();
 
             Console.WriteLine("all");
-            Console.WriteLine(CopyDatabase.Table1.All(r=>r.ID > 1));
+            Console.WriteLine(CopyDatabase.Table1.Where(r => r.ID < 10000).All(r=>r.ID > 1)); //  && r.ID < 10000  crashes
 
             Console.WriteLine();
          //   Debugger.Break();

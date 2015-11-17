@@ -78,25 +78,53 @@ namespace MakeSQL
         public SelectQuery Any()
         {
 #warning constant name :(
-            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new SQLFunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)).AS("Result"));
+            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new FunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)).AS("Result"));
         }
 
         internal override IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "SELECT ";
+            if (top.HasValue)
+            {
+                yield return "TOP ";
+                yield return top.ToString();
+                yield return " ";
+            }
+#if DEBUG
+            if (fields.Length > 1) yield return "\r\n   ";
+#endif
             for (int i = 0; i < fields.Length; i++)
             {
                 var field = fields[i].Definion.Compile(LanguageContext);
                 while (field.MoveNext()) yield return field.Current;                  
                 if (i < fields.Length - 1) yield return ", ";
             }
+#if DEBUG
+            yield return "\r\n";
+#endif
             yield return " FROM ";
+#if DEBUG
+            yield return "\r\n   ";
+#endif
             var From = source.Definion.Compile(LanguageContext);
-            while (From.MoveNext()) yield return From.Current;
+            while (From.MoveNext())
+            {
+                var current = From.Current;
+#if DEBUG
+                current = current.Replace("\r\n", "\r\n   ");
+#endif
+                yield return current;
+            }
 
             if (where?.Length > 0)
             {
+#if DEBUG
+                yield return "\r\n";
+#endif
                 yield return " WHERE ";
+#if DEBUG
+                yield return "\r\n   ";
+#endif
                 bool brackets = where.Length > 1;
 
                 for (int i = 0; i < where.Length; i++)
