@@ -9,11 +9,11 @@ namespace MakeSQL
     {
         internal SQLContext() { }
 
-        internal virtual string GetFunctionName(SqlFunction Function)
+        internal virtual string GetFunctionName(Function Function)
         {
             switch (Function)
             {
-                case SqlFunction.Count: return "COUNT";
+                case Function.Count: return "COUNT";
                 default: throw new NotSupportedException($"The given function (`{Function.ToString()}`) is not supporthed in the surrent context.");
             }
         }
@@ -77,7 +77,7 @@ namespace MakeSQL
             if (e_member != null)
             {
                 var RowPropertyAccess = e_member.Expression == Row;
-                if (RowPropertyAccess) return new string[] { FieldResolver(e_member.Member).Build(this) };
+                if (RowPropertyAccess) return new string[] { FieldResolver(e_member.Member).NamedColumnDefinion.Build(this) };
 
 #warning add debug output
                 return null;

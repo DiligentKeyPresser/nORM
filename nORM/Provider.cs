@@ -239,11 +239,11 @@ namespace nORM
 
             if (isCount || isAny)
             {// these functions entirely replace selection list
-                if (isLongCount) PredicatedTarget = PredicatedTarget.NewSelect(new FunctionCall(SqlFunction.CountBig, new Constant(1)).AS("Result"));
-                else if (isCount) PredicatedTarget = PredicatedTarget.NewSelect(new FunctionCall(SqlFunction.Count, new Constant(1)).AS("Result"));
+                if (isLongCount) PredicatedTarget = PredicatedTarget.NewSelect(Function.CountBig.invoke(1.literal()).name("Result"));
+                else if (isCount) PredicatedTarget = PredicatedTarget.NewSelect(Function.Count.invoke(1.literal()).name("Result"));
                 else if (isAny) PredicatedTarget = PredicatedTarget.Any();
 
-                var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.Build(TargetObject.Context.QueryContext));
+                var res = TargetObject.Context.ExecuteScalar(PredicatedTarget.Query.Build(TargetObject.Context.QueryContext));
                 return deMorgan ? !(bool)res : res;
             }
 

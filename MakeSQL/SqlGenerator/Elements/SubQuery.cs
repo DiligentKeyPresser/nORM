@@ -3,30 +3,30 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class SubQuery : Buildable, ISelectSource
+    public sealed class SubQuery : ISelectSource
     {
         private readonly SelectQuery baseQuery;
 
         private readonly LocalIdentifier AS;
 
-#warning ??
-        public Buildable Definion => this;
+        public Builder SourceDefinion { get; }
 
         internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
         {
             if (Alias == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
             baseQuery = Base;
             AS = Alias;
+            SourceDefinion = new Builder(Compile);
         }
 
-        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
+        private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "(";
 #if DEBUG
             yield return "\r\n ";
 #endif
 
-            var subquery = baseQuery.Compile(LanguageContext);
+            var subquery = baseQuery.Query.Compile(LanguageContext);
             while (subquery.MoveNext()) yield return subquery.Current;
 
 #if DEBUG
@@ -34,13 +34,8 @@ namespace MakeSQL
 #endif
             yield return ") AS ";
 
-            var name = AS.Compile(LanguageContext);
+            var name = AS.ColumnDefinion.Compile(LanguageContext);
             while (name.MoveNext()) yield return name.Current;
         }
-    }
-
-    public static class SubQueryExtensions
-    {
-        public static SubQuery AS(this SelectQuery Self, LocalIdentifier Alias) => new SubQuery(Self, Alias);
     }
 }

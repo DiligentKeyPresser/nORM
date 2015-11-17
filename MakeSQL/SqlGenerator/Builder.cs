@@ -1,21 +1,32 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace MakeSQL
 {
-    /// <summary> Basic class for query elements. </summary>
-    public abstract class Buildable
+    /// <summary>
+    /// Sql generator for the SQL Command element.
+    /// Can be used to build SQL Query in the given SQL context.
+    /// Does not cache built strings itself.
+    /// </summary>
+    public struct Builder
     {
-        internal Buildable() { }
+        // Opaque yet thin wrapper of IEnumerator<string>. 
+        // Allows to hide an implementation from the library user.
 
-        internal abstract IEnumerator<string> Compile(SQLContext LanguageContext);
+        private readonly Func<SQLContext, IEnumerator<string>> getter;
 
-        /// <summary> Transforms the current buildable object into an SQL command text </summary>
-        internal string Build(SQLContext LanguageContext)
+        internal Builder(Func<SQLContext, IEnumerator<string>> func) { getter = func; }
+
+        internal IEnumerator<string> Compile(SQLContext LanguageContext) => getter(LanguageContext);
+
+        /// <summary> Builds SQL text in the given context </summary>
+        /// <param name="LanguageContext"> TSQL, PostgreSQL or other available options </param>
+        public string Build(SQLContext LanguageContext)
         {
             var builder = new StringBuilder();
 
-            var enumerator = Compile(LanguageContext);
+            var enumerator = getter(LanguageContext);
             while (enumerator.MoveNext())
                 builder.Append(enumerator.Current);
 

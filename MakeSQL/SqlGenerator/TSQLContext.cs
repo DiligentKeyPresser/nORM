@@ -12,11 +12,11 @@ namespace MakeSQL
         internal override string LeftEscapingSymbol => "[";
         internal override string RightEscapingSymbol => "]";
 
-        internal override string GetFunctionName(SqlFunction Function)
+        internal override string GetFunctionName(Function Function)
         {
             switch (Function)
             {
-                case SqlFunction.CountBig: return "COUNT_BIG";
+                case Function.CountBig: return "COUNT_BIG";
                 default: return base.GetFunctionName(Function);
             }
         }

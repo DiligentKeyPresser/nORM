@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace MakeSQL
 {
 #warning name can be assigned to an object which is not a valid ISelectSource
-    public sealed class QualifiedIdentifier : Buildable, ISelectSource
+    public sealed class QualifiedIdentifier : ISelectSource
     {
 #warning validation?
         /// <summary> Name of the object </summary>
@@ -16,8 +16,7 @@ namespace MakeSQL
         /// <summary> Schema name </summary>
         public string Schema { get; }
 
-#warning ??
-        public Buildable Definion => this;
+        public Builder SourceDefinion { get; }
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>
         private readonly Dictionary<SQLContext, string> CachedNames = new Dictionary<SQLContext, string>();
@@ -51,7 +50,7 @@ namespace MakeSQL
             return cached;
         }
 
-        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
+        private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return Escape(LanguageContext);
         }
@@ -73,6 +72,7 @@ namespace MakeSQL
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("name", "Qualified name should not be empty.");
             Identifier = name;
             Schema = schema;
+            SourceDefinion = new Builder(Compile);
         }
 
         #region Conversion

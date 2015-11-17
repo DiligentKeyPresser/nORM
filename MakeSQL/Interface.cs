@@ -1,24 +1,29 @@
 ﻿namespace MakeSQL
 {
+    /// <summary> Anything to select from </summary>
     public interface ISelectSource
     {
-        Buildable Definion { get; }
+        /// <summary> Builds FROM clause </summary>
+        Builder SourceDefinion { get; }
     }
 
+    /// <summary> Anything to use in a SELECT clause </summary>
     public interface IColumnDefinion : IUnnamedColumnDefinion
     {
-        Buildable Definion { get; }
+        Builder NamedColumnDefinion { get; }
     }
 
+    /// <summary> Anything to use as computed column definion </summary>
     public interface IUnnamedColumnDefinion
     {
-        Buildable Definion { get; }
+        /// <summary> The column definion builder </summary>
+        Builder ColumnDefinion { get; }
     }
 
+    /// <summary> Anything to use as a standalone query </summary>
     public interface IQuery
     {
         /// <summary> Builds a query text </summary>
-        /// <param name="LanguageContext"> A factory corresponding to current SQL flavor </param>
-        string Build(SQLContext LanguageContext);
+        Builder Query { get; }
     }
 }

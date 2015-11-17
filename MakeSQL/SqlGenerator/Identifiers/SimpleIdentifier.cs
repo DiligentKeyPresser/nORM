@@ -3,14 +3,15 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class LocalIdentifier : Buildable, IColumnDefinion
+    public sealed class LocalIdentifier : IColumnDefinion
     {
 #warning validation?
         /// <summary> Name of the object </summary>
         public string Identifier { get; }
 
-#warning ??
-        public Buildable Definion => this;
+        public Builder NamedColumnDefinion => ColumnDefinion;
+
+        public Builder ColumnDefinion { get; }
 
         /// <summary> Cached representation of the name in different SQL flavors </summary>
         private readonly Dictionary<SQLContext, string> CachedNames = new Dictionary<SQLContext, string>();
@@ -29,7 +30,7 @@ namespace MakeSQL
             return cached;
         }
 
-        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
+        private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return Escape(LanguageContext);
         }
@@ -50,6 +51,7 @@ namespace MakeSQL
         {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("name", "Local name should not be empty.");
             Identifier = name;
+            ColumnDefinion = new Builder(Compile);
         }
 
         public static implicit operator LocalIdentifier(string source) => new LocalIdentifier(source);

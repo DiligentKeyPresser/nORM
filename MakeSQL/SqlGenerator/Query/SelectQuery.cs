@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class SelectQuery : Buildable, IQuery
+    public sealed class SelectQuery : IQuery
     {
         private ISelectSource source;
         private IColumnDefinion[] fields;
@@ -11,6 +11,9 @@ namespace MakeSQL
         private string[] where;
 #warning long?
         private int? top = null;
+
+        // some methods like `Where` change state just after cloning, so we cannot assign the builder in a constructor
+        public Builder Query => new Builder(Compile);
 
 #warning add overload with QualifiedIdentifier
         /// <summary> Creates a simple select query which can be extended or used as a subquery </summary>
@@ -57,7 +60,7 @@ namespace MakeSQL
             else
             {
 #warning constant name :(
-                var clone = new SelectQuery(this.AS("T"), fields);
+                var clone = new SelectQuery(this.name("T"), fields);
                 var new_where = new string[] { Clause };
                 clone.where = new_where;
                 return clone;
@@ -77,11 +80,13 @@ namespace MakeSQL
 
         public SelectQuery Any()
         {
-#warning constant name :(
-            return new SelectQuery(Top(1).NewSelect(new Constant(1).AS("A")).AS("T"), new Cast(new FunctionCall(SqlFunction.Count, new Constant(1)), typeof(bool)).AS("Result"));
+#warning constant names :(
+            return new SelectQuery(
+                this.Top(1).NewSelect(1.literal().name("A")).name("T"), 
+                new Cast(Function.Count.invoke(1.literal()), typeof(bool)).name("Result"));
         }
 
-        internal override IEnumerator<string> Compile(SQLContext LanguageContext)
+        private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
             yield return "SELECT ";
             if (top.HasValue)
@@ -95,7 +100,7 @@ namespace MakeSQL
 #endif
             for (int i = 0; i < fields.Length; i++)
             {
-                var field = fields[i].Definion.Compile(LanguageContext);
+                var field = fields[i].NamedColumnDefinion.Compile(LanguageContext);
                 while (field.MoveNext()) yield return field.Current;                  
                 if (i < fields.Length - 1) yield return ", ";
             }
@@ -106,7 +111,7 @@ namespace MakeSQL
 #if DEBUG
             yield return "\r\n   ";
 #endif
-            var From = source.Definion.Compile(LanguageContext);
+            var From = source.SourceDefinion.Compile(LanguageContext);
             while (From.MoveNext())
             {
                 var current = From.Current;
@@ -137,8 +142,6 @@ namespace MakeSQL
                 }
             }
         }
-
-        public new string Build(SQLContext LanguageContext) => base.Build(LanguageContext);
     }
 
 }
