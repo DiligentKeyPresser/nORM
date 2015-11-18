@@ -1,5 +1,6 @@
 ﻿using MakeSQL;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using static ExpLess.PartialEvaluator;
@@ -65,25 +66,22 @@ namespace nORM
 
     internal class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
     {
-        private static readonly FieldAttribute[] FieldAttributes;
-        private static readonly LocalIdentifier[] FieldNames;
+        /// <summary> Collection of columns of the table </summary>
+        public IReadOnlyList<DataColumn> Columns => RowContractInfo<RowContract>.Columns;
 
-        static Table()
-        {
-            FieldAttributes = RowContractInflater<RowContract>.ContractFields.Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
-            FieldNames = FieldAttributes.Select(f => f.ColumnName).ToArray();
-        }
-
-        /// <summary>
-        /// Gets a name of the table, based on contract declaration.
-        /// </summary>
+        /// <summary> Gets a name of the table, based on contract declaration. </summary>
         public QualifiedIdentifier Name { get; }
+
+        protected void Insert<SubRowContract>(SubRowContract OneValue)
+        {
+
+        }
 
         /// <summary>
         /// This constructor will be called dynamically
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, QualifiedIdentifier TableName)
-            : base(ConnectionContext, new SelectQuery(TableName, FieldNames))
+            : base(ConnectionContext, new SelectQuery(TableName, RowContractInfo<RowContract>.Columns.Select(c=>c.FieldName).ToArray()))
         {
             Name = TableName;            
         }

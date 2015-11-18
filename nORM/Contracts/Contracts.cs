@@ -27,10 +27,11 @@ namespace nORM
     /// </summary>
     public interface ITable<RowContract> : IQueryable<RowContract>
     {
-        /// <summary>
-        /// Gets a name of the table, based on contract declaration.
-        /// </summary>
+        /// <summary> Gets a name of the table, based on contract declaration. </summary>
         QualifiedIdentifier Name { get; }
+
+        /// <summary> Collection of columns of the table </summary>
+        IReadOnlyList<DataColumn> Columns { get; }
     }
 
     /// <summary>
@@ -106,6 +107,11 @@ namespace nORM
         internal LocalIdentifier ColumnName => fieldColumnName;
 
         private readonly string fieldColumnName;
+
+        internal FieldAttribute GetCustomAttribute(object p, Type fieldAttribute)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// Атрибут служит для разметки контракта строки.
