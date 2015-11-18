@@ -36,6 +36,13 @@ namespace nORM
             return connection.ExecuteScalar(Query);
         }
 
+        /// <summary> Delegates command execution to the underlying connector. </summary>
+        internal void ExecuteNonQuery(string Command)
+        {
+            if (BeforeCommandExecute != null) BeforeCommandExecute(Command);
+            connection.ExecureNonQuery(Command);
+        }
+
         /// <summary>
         /// Delegates query execution to the underlying connector.
         /// Each result row will be transformed into a TElement by the given `Projection`.

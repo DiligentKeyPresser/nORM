@@ -18,6 +18,11 @@ namespace nORM
         internal abstract object ExecuteScalar(string Query);
 
         /// <summary>
+        /// Establish a new connection and execute a command against it.
+        /// </summary>
+        internal abstract int ExecureNonQuery(string Command);
+
+        /// <summary>
         /// Establish a new connection, execute the query and refurn the full result set.
         /// Each result row will be transformed into a TElement by the given `Projection`.
         /// </summary>
@@ -82,6 +87,16 @@ namespace nORM
             {
                 connection.Open();
                 return command.ExecuteScalar();
+            }
+        }
+
+        internal override int ExecureNonQuery(string Command)
+        {
+            using (var connection = MakeConnection())
+            using (var command = MakeCommand(Command, connection))
+            {
+                connection.Open();
+                return command.ExecuteNonQuery();
             }
         }
 

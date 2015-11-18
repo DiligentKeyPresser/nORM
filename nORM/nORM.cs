@@ -72,10 +72,15 @@ namespace nORM
         /// <summary> Gets a name of the table, based on contract declaration. </summary>
         public QualifiedIdentifier Name { get; }
 
-        protected void Insert<SubRowContract>(SubRowContract OneValue)
+        protected void InsertOne<SubRowContract>(SubRowContract OneValue) => InsertMany(new SubRowContract[] { OneValue });
+
+        protected void InsertMany<SubRowContract>(IEnumerable<SubRowContract> OneValue)
         {
+#warning cache this
             var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
-         //   var Query = new InsertQuery(Name, SubRowColumns, new Values(new object[] {  }))
+            var Query = new InsertQuery(Name, SubRowColumns, new Values(OneValue.Select(RowContractDecomposer<SubRowContract>.Decompose)));
+            var SQL = Query.Query.Build(Context.QueryContext);
+            Context.ExecuteNonQuery(SQL);
         }
 
         /// <summary>
