@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -35,7 +34,6 @@ namespace nORM
 #warning Вынести проверку контракта в конструирование базы данных
                 if (ColumnInfo.PropertyMetadata.CanWrite) throw new InvalidContractException(ContractType, string.Format("row property ({0}) must be readonly", ColumnInfo.PropertyMetadata.Name));
 
-              //  var FieldAttr = Attribute.GetCustomAttribute(ColumnInfo.PropertyMetadata, TypeOf.FieldAttribute) as FieldAttribute;
                 var field = ClassBuilder.DefineField("__field_" + ColumnInfo.PropertyMetadata.Name, ColumnInfo.PropertyMetadata.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
 
                 consgen.Emit(OpCodes.Ldarg_0); // для stfld

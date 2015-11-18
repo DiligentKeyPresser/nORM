@@ -74,7 +74,8 @@ namespace nORM
 
         protected void Insert<SubRowContract>(SubRowContract OneValue)
         {
-
+            var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+         //   var Query = new InsertQuery(Name, SubRowColumns, new Values(new object[] {  }))
         }
 
         /// <summary>

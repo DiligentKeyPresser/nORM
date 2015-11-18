@@ -7,6 +7,12 @@
         Builder SourceDefinion { get; }
     }
 
+    /// <summary> Anything to insert from </summary>
+    public interface IInsertSource
+    {
+        Builder InsertSourceDefinion { get; }
+    }
+
     /// <summary> Anything to use in a SELECT clause </summary>
     public interface IColumnDefinion : IUnnamedColumnDefinion
     {

@@ -54,7 +54,7 @@
     <Compile Include="DatabaseContext\PostgreSQL.cs" />
     <Compile Include="DatabaseContext\SqlServer.cs" />
     <Compile Include="Emit.cs" />
-    <Compile Include="Emit\RowContractInflater.cs" />
+    <Compile Include="Contracts\Row contracts\RowContractInflater.cs" />
     <Compile Include="Emit\TableContractInflater.cs" />
     <Compile Include="Materialization.cs" />
     <Compile Include="nORM.cs" />
