@@ -83,6 +83,11 @@ namespace nORM
             Context.ExecuteNonQuery(SQL);
         }
 
+        protected void InsertQueryable<SubRowContract>(IQueryable<SubRowContract> Source)
+        {
+
+        }
+
         /// <summary>
         /// This constructor will be called dynamically
         /// </summary>
