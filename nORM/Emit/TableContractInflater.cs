@@ -67,7 +67,12 @@ namespace nORM
                 ins_range_body.Emit(OpCodes.Ret);
 
                 var InsertSubQuery = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IQueryable_generic.MakeGenericType(insertable) });
+                var InsertSubQueryMethod = BasicTableType.GetMethod("InsertQueryable", BindingFlags.NonPublic | BindingFlags.Instance).MakeGenericMethod(insertable);
+
                 var ins_q_body = InsertSubQuery.GetILGenerator();
+                ins_q_body.Emit(OpCodes.Ldarg_0);
+                ins_q_body.Emit(OpCodes.Ldarg_1);
+                ins_q_body.Emit(OpCodes.Call, InsertSubQueryMethod);
                 ins_q_body.Emit(OpCodes.Ret);
             }
 

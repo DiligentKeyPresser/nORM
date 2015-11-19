@@ -85,7 +85,16 @@ namespace nORM
 
         protected void InsertQueryable<SubRowContract>(IQueryable<SubRowContract> Source)
         {
-
+            var row_source = Source as RowSource;
+            if (row_source != null)
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns));
+                var SQL = Query.Query.Build(Context.QueryContext);
+                Context.ExecuteNonQuery(SQL);
+            }
+            else InsertMany(Source);
         }
 
         /// <summary>

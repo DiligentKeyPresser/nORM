@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
-    public sealed class SelectQuery : IQuery
+    public sealed class SelectQuery : IQuery, IInsertSource
     {
         private ISelectSource source;
         private IColumnDefinion[] fields;
@@ -14,6 +14,8 @@ namespace MakeSQL
 
         // some methods like `Where` change state just after cloning, so we cannot assign the builder in a constructor
         public Builder Query => new Builder(Compile);
+
+        public Builder InsertSourceDefinion => Query;
 
 #warning add overload with QualifiedIdentifier
         /// <summary> Creates a simple select query which can be extended or used as a subquery </summary>
