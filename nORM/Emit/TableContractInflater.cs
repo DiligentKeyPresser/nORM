@@ -28,7 +28,7 @@ namespace nORM
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
                 "DBTable_" + TableContractType.Name,
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout,
-                typeof(Table<RowContract>), new Type[] { typeof(TableContract) });
+                BasicTableType, new Type[] { typeof(TableContract) });
 
             var BaseConstructor = BasicTableType.GetConstructor(
                 BindingFlags.NonPublic | BindingFlags.CreateInstance | BindingFlags.Instance,
@@ -49,7 +49,13 @@ namespace nORM
             foreach (var insertable in Insertables)
             {
                 var InsertOne = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { insertable });
+                var InsertMethod = BasicTableType.GetMethod("InsertOne", BindingFlags.NonPublic | BindingFlags.Instance).MakeGenericMethod(insertable);
+
                 var ins_one_body = InsertOne.GetILGenerator();
+                // this
+                ins_one_body.Emit(OpCodes.Ldarg_0);
+                ins_one_body.Emit(OpCodes.Ldarg_1);
+                ins_one_body.Emit(OpCodes.Call, InsertMethod);
                 ins_one_body.Emit(OpCodes.Ret);
 
                 var InsertRange = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IEnumerable_generic.MakeGenericType(insertable) });

@@ -21,6 +21,12 @@ namespace test_project
         string Name { get; }
     }
 
+    public class Ins : ITable1RowData
+    {
+        public int Count => 999;
+        public string Name => "nine";
+    }
+
     public interface ITestTable : ITable<ITable1Row>, IInsertable<ITable1RowData>
     {
 
@@ -41,6 +47,10 @@ namespace test_project
         {
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
+
+            CopyDatabase.Table1.Insert(new Ins());
+
+            Debugger.Break();
 
             Console.WriteLine("partial evaluation");
             int tri = 3;

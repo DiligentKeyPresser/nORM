@@ -92,10 +92,4 @@ namespace nORM
             Name = TableName;            
         }
     }
-    /*
-    public class ProjectionQuery<TResultElement, TSourceRowContract>: Query<TResultElement>
-    {
-
-    }
-    */
 }

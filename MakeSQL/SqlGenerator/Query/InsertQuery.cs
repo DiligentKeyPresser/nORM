@@ -15,6 +15,7 @@ namespace MakeSQL
         {
             this.Into = Into;
             fields = Fields;
+            SourceData = From;
         }
 
         private IEnumerator<string> Compile(SQLContext LanguageContext)
