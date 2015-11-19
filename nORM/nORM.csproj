@@ -50,13 +50,14 @@
     <Compile Include="Contracts\Row contracts\Columns.cs" />
     <Compile Include="Contracts\Row contracts\RowContractDecomposer.cs" />
     <Compile Include="Contracts\Row contracts\RowContractMetadata.cs" />
+    <Compile Include="Contracts\Table contracts\Declarations.cs" />
     <Compile Include="DatabaseContext\DatabaseConnector.cs" />
     <Compile Include="DatabaseContext\DatabaseContext.cs" />
     <Compile Include="DatabaseContext\PostgreSQL.cs" />
     <Compile Include="DatabaseContext\SqlServer.cs" />
     <Compile Include="Emit.cs" />
     <Compile Include="Contracts\Row contracts\RowContractInflater.cs" />
-    <Compile Include="Emit\TableContractInflater.cs" />
+    <Compile Include="Contracts\Table contracts\TableContractInflater.cs" />
     <Compile Include="Materialization.cs" />
     <Compile Include="nORM.cs" />
     <Compile Include="PredicateTranslator.cs" />
@@ -82,6 +83,7 @@
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Fody.1.29.3\build\dotnet\Fody.targets" Condition="Exists('..\packages\Fody.1.29.3\build\dotnet\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

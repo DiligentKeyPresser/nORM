@@ -13,6 +13,8 @@ namespace nORM
     /// <typeparam name="RowContract"> Row contract, extracted from the table contract </typeparam>
     internal static class TableContractInflater<TableContract, RowContract> where TableContract : ITable<RowContract>
     {
+        // RowContract can be inferred from TableContract, but explicit constraint saves a lot of efforts, so i stucked at this approach.
+
         private static readonly ConstructorInfo TableConstructor;
 
         static TableContractInflater()
