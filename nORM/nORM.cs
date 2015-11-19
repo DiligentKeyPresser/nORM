@@ -1,5 +1,6 @@
 ﻿using MakeSQL;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using static ExpLess.PartialEvaluator;
@@ -65,33 +66,44 @@ namespace nORM
 
     internal class Table<RowContract> : RowSource<RowContract>, ITable<RowContract> 
     {
-        private static readonly FieldAttribute[] FieldAttributes;
-        private static readonly LocalIdentifier[] FieldNames;
+        /// <summary> Collection of columns of the table </summary>
+        public IReadOnlyList<DataColumn> Columns => RowContractInfo<RowContract>.Columns;
 
-        static Table()
+        /// <summary> Gets a name of the table, based on contract declaration. </summary>
+        public QualifiedIdentifier Name { get; }
+
+        protected void InsertOne<SubRowContract>(SubRowContract OneValue) => InsertMany(new SubRowContract[] { OneValue });
+
+        protected void InsertMany<SubRowContract>(IEnumerable<SubRowContract> OneValue)
         {
-            FieldAttributes = RowContractInflater<RowContract>.ContractFields.Select(p => Attribute.GetCustomAttribute(p, TypeOf.FieldAttribute) as FieldAttribute).ToArray();
-            FieldNames = FieldAttributes.Select(f => f.ColumnName).ToArray();
+#warning cache this
+            var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+            var Query = new InsertQuery(Name, SubRowColumns, new Values(OneValue.Select(RowContractDecomposer<SubRowContract>.Decompose)));
+            var SQL = Query.Query.Build(Context.QueryContext);
+            Context.ExecuteNonQuery(SQL);
         }
 
-        /// <summary>
-        /// Gets a name of the table, based on contract declaration.
-        /// </summary>
-        public QualifiedIdentifier Name { get; }
+        protected void InsertQueryable<SubRowContract>(IQueryable<SubRowContract> Source)
+        {
+            var row_source = Source as RowSource;
+            if (row_source != null)
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns));
+                var SQL = Query.Query.Build(Context.QueryContext);
+                Context.ExecuteNonQuery(SQL);
+            }
+            else InsertMany(Source);
+        }
 
         /// <summary>
         /// This constructor will be called dynamically
         /// </summary>
         internal Table(DatabaseContext ConnectionContext, QualifiedIdentifier TableName)
-            : base(ConnectionContext, new SelectQuery(TableName, FieldNames))
+            : base(ConnectionContext, new SelectQuery(TableName, RowContractInfo<RowContract>.Columns.Select(c=>c.FieldName).ToArray()))
         {
             Name = TableName;            
         }
     }
-    /*
-    public class ProjectionQuery<TResultElement, TSourceRowContract>: Query<TResultElement>
-    {
-
-    }
-    */
 }

@@ -34,6 +34,14 @@ namespace MakeSQL
                 yield return Value.ToString();
                 yield break; 
             }
+            if (Value.GetType() == typeof(string))
+            {
+                yield return "'";
+#warning escape the string!!!!
+                yield return Value as string;
+                yield return "'";
+                yield break;
+            }
             throw new NotSupportedException($"The type of the given literal (`{Value.GetType().Name}`) is not supporthed in the surrent context.");
         }
 
