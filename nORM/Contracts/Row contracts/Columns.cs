@@ -21,7 +21,7 @@ namespace nORM
         /// <summary> Name of the property in a row contract </summary>
         public string ContractName { get; }
 
-        public DataColumn(PropertyInfo prop)
+        internal DataColumn(PropertyInfo prop)
         {
             PropertyMetadata = prop;
 
