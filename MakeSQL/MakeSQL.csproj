@@ -49,6 +49,7 @@
     <Compile Include="SqlGenerator\Identifiers\SimpleIdentifier.cs" />
     <Compile Include="SqlGenerator\Builder.cs" />
     <Compile Include="SqlGenerator\PostgreSQL.cs" />
+    <Compile Include="SqlGenerator\Query\DeleteQuery.cs" />
     <Compile Include="SqlGenerator\Query\InsertQuery.cs" />
     <Compile Include="SqlGenerator\SQLContext.cs" />
     <Compile Include="SqlGenerator\Query\SelectQuery.cs" />

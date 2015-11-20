@@ -48,7 +48,10 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-            CopyDatabase.Table1.Insert(CopyDatabase.Table1.Where(r=>r.ID == 4));
+
+
+            int affected_rows = CopyDatabase.Table1.Delete(row => row.ID == 1004);
+            Console.WriteLine(affected_rows);
 
             Debugger.Break();
 

@@ -1,6 +1,8 @@
 ﻿using MakeSQL;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 
 namespace nORM
 {
@@ -16,6 +18,9 @@ namespace nORM
 
         /// <summary> Collection of columns of the table </summary>
         IReadOnlyList<DataColumn> Columns { get; }
+
+        /// <summary> Deletes rows from the table, based on a predicate. Returns a number of the affected rows. </summary>
+        int Delete(Expression<Func<RowContract, bool>> predicate);
     }
 
     /// <summary>

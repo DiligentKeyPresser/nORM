@@ -37,10 +37,10 @@ namespace nORM
         }
 
         /// <summary> Delegates command execution to the underlying connector. </summary>
-        internal void ExecuteNonQuery(string Command)
+        internal int ExecuteNonQuery(string Command)
         {
             if (BeforeCommandExecute != null) BeforeCommandExecute(Command);
-            connection.ExecureNonQuery(Command);
+            return connection.ExecureNonQuery(Command);
         }
 
         /// <summary>

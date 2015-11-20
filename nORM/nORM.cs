@@ -97,6 +97,22 @@ namespace nORM
             else InsertMany(Source);
         }
 
+        public int Delete(Expression<Func<RowContract, bool>> predicate)
+        {
+            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(predicate), null, member =>
+            {
+#if DEBUG
+                if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+            });
+            if (sql_predicate == null) throw new NotSupportedException("This predicate cannot be translated into an SQL code.");
+
+            var SQL = new DeleteQuery(Name, string.Concat(sql_predicate)).Query.Build(Context.QueryContext);
+            return Context.ExecuteNonQuery(SQL);
+        }
+
         /// <summary>
         /// This constructor will be called dynamically
         /// </summary>
