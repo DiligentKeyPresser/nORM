@@ -28,7 +28,7 @@ namespace nORM
             if (!RowContractType.IsInterface) throw new InvalidContractException(RowContractType, "row contract must be an interface.");
 
             TypeBuilder ClassBuilder = DbAss.moduleBuilder.DefineType(
-                "DBTable_" + TableContractType.Name,
+                $"DBTable_{TableContractType.Name}_{RowContractType.Name}",
                 TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.AutoClass | TypeAttributes.BeforeFieldInit | TypeAttributes.AnsiClass | TypeAttributes.AutoLayout,
                 BasicTableType, new Type[] { typeof(TableContract) });
 
