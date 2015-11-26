@@ -74,13 +74,16 @@ namespace nORM
 
         protected void InsertOne<SubRowContract>(SubRowContract OneValue) => InsertMany(new SubRowContract[] { OneValue });
 
-        protected void InsertMany<SubRowContract>(IEnumerable<SubRowContract> OneValue)
+        protected void InsertMany<SubRowContract>(IEnumerable<SubRowContract> Collection)
         {
+            if (Collection.Any())
+            {
 #warning cache this
-            var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
-            var Query = new InsertQuery(Name, SubRowColumns, new Values(OneValue.Select(RowContractDecomposer<SubRowContract>.Decompose)));
-            var SQL = Query.Query.Build(Context.QueryContext);
-            Context.ExecuteNonQuery(SQL);
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, new Values(Collection.Select(RowContractDecomposer<SubRowContract>.Decompose)));
+                var SQL = Query.Query.Build(Context.QueryContext);
+                Context.ExecuteNonQuery(SQL);
+            }
         }
 
         protected void InsertQueryable<SubRowContract>(IQueryable<SubRowContract> Source)
