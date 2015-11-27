@@ -49,7 +49,9 @@ namespace nORM
         public static readonly Type ITable_generic = typeof(ITable<>);
         public static readonly Type TableContractInflater = typeof(TableContractInflater<,>);
         public static readonly Type IInsertable = typeof(IInsertable<>);
-        
+
+        public static readonly FieldInfo DBNullField = typeof(DBNull).GetField(nameof(DBNull.Value));
+
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>

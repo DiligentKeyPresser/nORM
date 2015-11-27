@@ -44,7 +44,20 @@ namespace nORM
                 if (ColumnInfo.ColumnType.IsValueType)
                     consgen.Emit(OpCodes.Unbox_Any, ColumnInfo.ColumnType);
 
+                Label IfNull = consgen.DefineLabel();
+                Label EndIf = consgen.DefineLabel();
+                consgen.Emit(OpCodes.Dup);
+                consgen.Emit(OpCodes.Ldnull);
+                consgen.Emit(OpCodes.Ldfld, TypeOf.DBNullField);
+                consgen.Emit(OpCodes.Ceq);
+
+                consgen.Emit(OpCodes.Pop); ///////////////////////////////
+                //consgen.Emit(OpCodes.Brtrue_S, IfNull); // error
                 consgen.Emit(OpCodes.Stfld, field);
+                consgen.Emit(OpCodes.Br_S, EndIf);
+                consgen.MarkLabel(IfNull);
+                consgen.Emit(OpCodes.Pop);
+                consgen.MarkLabel(EndIf);
 
                 var prop = ClassBuilder.DefineProperty(ColumnInfo.ContractName, PropertyAttributes.None, ColumnInfo.ColumnType, null);
 
