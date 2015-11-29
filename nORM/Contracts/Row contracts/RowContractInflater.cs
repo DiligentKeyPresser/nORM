@@ -9,6 +9,9 @@ namespace nORM
     {
         private static readonly ConstructorInfo RowConstructor;
 
+        internal static T GetDefault<T>() => default(T);
+        private static readonly MethodInfo DefaultGetter = typeof(RowContractInflater<RowContract>).GetMethod(nameof(GetDefault), BindingFlags.NonPublic | BindingFlags.Static);
+
         static RowContractInflater()
         {
             var ContractType = typeof(RowContract);
@@ -36,27 +39,32 @@ namespace nORM
 
                 var field = ClassBuilder.DefineField("__field_" + ColumnInfo.PropertyMetadata.Name, ColumnInfo.PropertyMetadata.PropertyType, FieldAttributes.InitOnly | FieldAttributes.Private);
 
-                consgen.Emit(OpCodes.Ldarg_0); // для stfld
-                consgen.Emit(OpCodes.Ldarg_1);
-                consgen.Emit(OpCodes.Ldc_I4, field_number);
-                consgen.Emit(OpCodes.Ldelem_Ref);
+                consgen.Emit(OpCodes.Ldarg_0);                              // 'this' for stfld :: 1
+                consgen.Emit(OpCodes.Ldarg_1);                              // input array
+                consgen.Emit(OpCodes.Ldc_I4, field_number);                 // array index
+                consgen.Emit(OpCodes.Ldelem_Ref);                           // load input array element
 
                 if (ColumnInfo.ColumnType.IsValueType)
-                    consgen.Emit(OpCodes.Unbox_Any, ColumnInfo.ColumnType);
+                    consgen.Emit(OpCodes.Unbox_Any, ColumnInfo.ColumnType); // unbox if boxed
+                                                                         
+                // now value is on the top of stack and 'this' is under.
 
-                Label IfNull = consgen.DefineLabel();
+                Label IfNull = consgen.DefineLabel();                       
                 Label EndIf = consgen.DefineLabel();
-                consgen.Emit(OpCodes.Dup);
-                consgen.Emit(OpCodes.Ldnull);
-                consgen.Emit(OpCodes.Ldfld, TypeOf.DBNullField);
-                consgen.Emit(OpCodes.Ceq);
+                consgen.Emit(OpCodes.Dup);                                  // duplication for the DbNull check                                 
+          //      consgen.Emit(OpCodes.Ldnull);                               // static field of DBNull
+                consgen.Emit(OpCodes.Ldfld, TypeOf.DBNullField);            // DBNull value
+                consgen.Emit(OpCodes.Ceq);                                  // check for equality
 
-                consgen.Emit(OpCodes.Pop); ///////////////////////////////
-                //consgen.Emit(OpCodes.Brtrue_S, IfNull); // error
-                consgen.Emit(OpCodes.Stfld, field);
-                consgen.Emit(OpCodes.Br_S, EndIf);
-                consgen.MarkLabel(IfNull);
-                consgen.Emit(OpCodes.Pop);
+                // now 1 or 0 is over the previous stack
+
+                consgen.Emit(OpCodes.Brtrue_S, IfNull);                     // if Value == DBNull goto ...
+                consgen.Emit(OpCodes.Stfld, field);                         // else store value in the field
+                consgen.Emit(OpCodes.Br_S, EndIf);                          // and goto next field
+                consgen.MarkLabel(IfNull);                                  
+                consgen.Emit(OpCodes.Pop);                                  // get rid of DBNull value. 'this' is still on the stack
+                consgen.Emit(OpCodes.Call, DefaultGetter.MakeGenericMethod(ColumnInfo.ColumnType));
+                consgen.Emit(OpCodes.Stfld, field);                         // 'this' used now
                 consgen.MarkLabel(EndIf);
 
                 var prop = ClassBuilder.DefineProperty(ColumnInfo.ContractName, PropertyAttributes.None, ColumnInfo.ColumnType, null);

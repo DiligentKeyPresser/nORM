@@ -57,10 +57,10 @@ namespace test_project
 
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("server", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-            foreach (var r in CopyDatabase.Table2) Console.WriteLine(r.data);
+            foreach (var r in CopyDatabase.Table2) Console.WriteLine(r.ID);
 
 
             Console.ReadKey();
