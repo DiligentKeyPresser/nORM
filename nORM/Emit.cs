@@ -52,6 +52,8 @@ namespace nORM
 
         public static readonly FieldInfo DBNullField = typeof(DBNull).GetField(nameof(DBNull.Value));
 
+        public static readonly Type[] one_string_argument = new Type[] { typeof(string) };
+
         /// <summary>
         /// Массив типов аргументов конструктора контекста БД
         /// </summary>

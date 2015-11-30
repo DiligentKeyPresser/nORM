@@ -104,5 +104,11 @@ namespace nORM
         {
             ContractType = type;
         }
+
+        public InvalidContractException(string Message)
+            : base(Message)
+        {
+            ContractType = null;
+        }
     }
 }
