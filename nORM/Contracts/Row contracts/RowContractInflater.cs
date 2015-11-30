@@ -9,9 +9,6 @@ namespace nORM
     {
         private static readonly ConstructorInfo RowConstructor;
 
-        internal static T GetDefault<T>() => default(T);
-        private static readonly MethodInfo DefaultGetter = typeof(RowContractInflater<RowContract>).GetMethod(nameof(GetDefault), BindingFlags.NonPublic | BindingFlags.Static);
-
         static RowContractInflater()
         {
             var ContractType = typeof(RowContract);
@@ -63,11 +60,10 @@ namespace nORM
                     consgen.Emit(OpCodes.Pop);                              // else get rid of DBNull value. 'this' is still on the stack
                     consgen.Emit(OpCodes.Pop);                              // remove 'this' from the stack
                     consgen.Emit(OpCodes.Br_S, End);                        // leave the field with the default value
-
                 }
                 else
                 {
-                    consgen.Emit(OpCodes.Ldstr, $"Invalid contract {ContractType.Name}: 'NULL' value in non-nullable field '{ColumnInfo.FieldName}'.");
+                    consgen.Emit(OpCodes.Ldstr, $"Invalid contract {ContractType.Name}: 'NULL' value in a non-nullable field '{ColumnInfo.FieldName}'.");
                     consgen.Emit(OpCodes.Newobj, typeof(InvalidContractException).GetConstructor(TypeOf.one_string_argument));
                     consgen.Emit(OpCodes.Throw);
                 }
