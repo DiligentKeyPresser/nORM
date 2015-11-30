@@ -43,17 +43,13 @@ namespace nORM
                 consgen.Emit(OpCodes.Ldarg_1);                              // input array
                 consgen.Emit(OpCodes.Ldc_I4, field_number);                 // array index
                 consgen.Emit(OpCodes.Ldelem_Ref);                           // load input array element
-
-                if (ColumnInfo.ColumnType.IsValueType)
-                    consgen.Emit(OpCodes.Unbox_Any, ColumnInfo.ColumnType); // unbox if boxed
-
+                
                 // now value is on the top of stack and 'this' is under.
 
                 Label NotNull = consgen.DefineLabel();
                 Label End = consgen.DefineLabel();
+
                 consgen.Emit(OpCodes.Dup);                                  // duplication for the DbNull check  
-                if (ColumnInfo.ColumnType.IsValueType)
-                    consgen.Emit(OpCodes.Box, ColumnInfo.ColumnType);       // box if unboxed
                 consgen.Emit(OpCodes.Ldnull);                               // static field of DBNull
                 consgen.Emit(OpCodes.Ldfld, TypeOf.DBNullField);            // DBNull value
                 consgen.Emit(OpCodes.Ceq);                                  // check for equality
@@ -61,14 +57,16 @@ namespace nORM
                 // now 1 or 0 is over the previous stack
 
                 consgen.Emit(OpCodes.Brfalse_S, NotNull);                   // if Value != DBNull goto ...
-                consgen.Emit(OpCodes.Pop);                                  // get rid of DBNull value. 'this' is still on the stack
-                                                                            // consgen.Emit(OpCodes.Call, DefaultGetter.MakeGenericMethod(ColumnInfo.ColumnType)); // create default value instead
-                consgen.Emit(OpCodes.Ldflda, field);
-                consgen.Emit(OpCodes.Initobj, field.FieldType);
-                consgen.Emit(OpCodes.Br_S, End);
+                consgen.Emit(OpCodes.Pop);                                  // else get rid of DBNull value. 'this' is still on the stack
+                consgen.Emit(OpCodes.Pop);                                  // remove 'this' from the stack 
+                consgen.Emit(OpCodes.Br_S, End);                            // leave the field with the default value
 
-                consgen.MarkLabel(NotNull);
-                consgen.Emit(OpCodes.Stfld, field);                         // store value into the field
+                consgen.MarkLabel(NotNull);                                 // so, Value != DBNull
+
+                if (ColumnInfo.ColumnType.IsValueType)
+                    consgen.Emit(OpCodes.Unbox_Any, ColumnInfo.ColumnType); // < unbox the value if it is boxed >
+
+                consgen.Emit(OpCodes.Stfld, field);                         // then store the value into the field
                 consgen.MarkLabel(End);
 
                 var prop = ClassBuilder.DefineProperty(ColumnInfo.ContractName, PropertyAttributes.None, ColumnInfo.ColumnType, null);
