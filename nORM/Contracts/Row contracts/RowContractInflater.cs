@@ -57,9 +57,20 @@ namespace nORM
                 // now 1 or 0 is over the previous stack
 
                 consgen.Emit(OpCodes.Brfalse_S, NotNull);                   // if Value != DBNull goto ...
-                consgen.Emit(OpCodes.Pop);                                  // else get rid of DBNull value. 'this' is still on the stack
-                consgen.Emit(OpCodes.Pop);                                  // remove 'this' from the stack 
-                consgen.Emit(OpCodes.Br_S, End);                            // leave the field with the default value
+
+                if (Nullable.GetUnderlyingType(ColumnInfo.ColumnType) != null)
+                {
+                    consgen.Emit(OpCodes.Pop);                              // else get rid of DBNull value. 'this' is still on the stack
+                    consgen.Emit(OpCodes.Pop);                              // remove 'this' from the stack
+                    consgen.Emit(OpCodes.Br_S, End);                        // leave the field with the default value
+
+                }
+                else
+                {
+                    consgen.Emit(OpCodes.Ldstr, $"Invalid contract {ContractType.Name}: 'NULL' value in non-nullable field '{ColumnInfo.FieldName}'.");
+                    consgen.Emit(OpCodes.Newobj, typeof(InvalidContractException).GetConstructor(TypeOf.one_string_argument));
+                    consgen.Emit(OpCodes.Throw);
+                }
 
                 consgen.MarkLabel(NotNull);                                 // so, Value != DBNull
 
