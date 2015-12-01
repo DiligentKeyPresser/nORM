@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace MakeSQL
 {
@@ -30,5 +31,21 @@ namespace MakeSQL
             }
         }
 
+        internal override IEnumerator<string> InsertReturningClause_at_End(LocalIdentifier column)
+        {
+            yield break;
+        }
+
+        internal override IEnumerator<string> InsertReturningClause_at_Values(LocalIdentifier column)
+        {
+            yield return "OUTPUT inserted.";
+
+            var id = column.ColumnDefinion.Compile(this);
+            while (id.MoveNext())
+                yield return id.Current;
+#if DEBUG
+            yield return "\r\n";
+#endif
+        }
     }
 }
