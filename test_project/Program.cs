@@ -60,6 +60,8 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
+            Console.WriteLine(CopyDatabase.Table1.InsertReturning<ITable1RowData, int>(new Ins(), CopyDatabase.Table1.Columns.Single(c => c.RealName == "id")));
+
             Console.ReadKey();
         }
     }

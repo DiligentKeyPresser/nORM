@@ -18,16 +18,24 @@ namespace nORM
         /// <summary> Deletes rows from the table, based on a predicate. Returns a number of the affected rows. </summary>
         int Delete(Expression<Func<RowContract, bool>> predicate);
 
-        // <summary>
+        /// <summary>
         /// A single INSERT query
         /// </summary>
-        /// <param name="Row"> A single row to be inserted </param>
+        /// <param name="OneValue"> A single row to be inserted </param>
         void Insert<SubRowContract>(SubRowContract OneValue);
+
+        /// <summary>
+        /// A single INSERT query.
+        /// Returns a value of requered column.
+        /// </summary>
+        /// <param name="OneValue"> A single row to be inserted </param>
+        /// <param name="ReturningColumn"> A column to be returned </param>
+        TRes InsertReturning<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn);
 
         /// <summary>
         /// An INSERT query with table constructor 
         /// </summary>
-        /// <param name="Rows"> A collection of rows to insert </param>
+        /// <param name="Collection"> A collection of rows to insert </param>
         void Insert<SubRowContract>(IEnumerable<SubRowContract> Collection);
 
         /// <summary>

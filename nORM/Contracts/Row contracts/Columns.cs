@@ -16,7 +16,10 @@ namespace nORM
         public Type ColumnType { get; }
 
         /// <summary> Name of the field in a database. </summary>
-        public LocalIdentifier FieldName { get; }
+        internal LocalIdentifier FieldName { get; }
+
+        /// <summary> Name of the field in a database. </summary>
+        public string RealName => FieldName.Identifier;
 
         /// <summary> Name of the property in a row contract </summary>
         public string ContractName { get; }

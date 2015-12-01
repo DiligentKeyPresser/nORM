@@ -74,6 +74,25 @@ namespace nORM
 
         public void Insert<SubRowContract>(SubRowContract OneValue) => Insert((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue }));
 
+        public TRes InsertReturning<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn)
+        {
+            if (!typeof(TRes).IsAssignableFrom(ReturningColumn.ColumnType))
+                throw new InvalidContractException($"Column '{ReturningColumn.ContractName}' in a contract '{nameof(RowContract)}' cannot be cast to a type '{nameof(TRes)}'");
+
+#warning cache this
+            var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+            var Query = new InsertQuery(Name, SubRowColumns, new Values(new object[][] { RowContractDecomposer<SubRowContract>.Decompose(OneValue) }), ReturningColumn.FieldName);
+            var SQL = Query.Query.Build(Context.QueryContext);
+            var res = Context.ExecuteScalar(SQL);
+            if (res == DBNull.Value)
+            {
+                if (Nullable.GetUnderlyingType(ReturningColumn.ColumnType) == null)
+                    throw new InvalidContractException($"InsertReturning: 'NULL' value in a non-nullable field '{ReturningColumn.FieldName}'.");
+                return default(TRes);
+            }
+            else return (TRes) res;
+        }
+
         public void Insert<SubRowContract>(IEnumerable<SubRowContract> Collection)
         {
             if (Collection.Any())
