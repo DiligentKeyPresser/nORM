@@ -23,8 +23,8 @@ namespace test_project
 
     public class Ins : ITable1RowData
     {
-        public int Count => 999;
-        public string Name => "nine";
+        public int Count => 222;
+        public string Name => "two";
     }
 
     public interface ITable2Row 
@@ -36,7 +36,7 @@ namespace test_project
         int? data { get; }
     }
 
-    public interface ITestTable : ITable<ITable1Row>, IInsertable<ITable1RowData>
+    public interface ITestTable : ITable<ITable1Row>
     {
 
     }
@@ -60,8 +60,7 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-            foreach (var r in CopyDatabase.Table2) Console.WriteLine(r.data);
-
+            Console.WriteLine(CopyDatabase.Table1.InsertRet(new Ins()).Name);
 
             Console.ReadKey();
         }

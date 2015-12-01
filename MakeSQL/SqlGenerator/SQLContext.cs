@@ -48,6 +48,10 @@ namespace MakeSQL
         internal virtual string LeftEscapingSymbol => "\"";
         internal virtual string RightEscapingSymbol => "\"";
 
+        internal abstract IEnumerator<string> InsertReturningClause_at_Values(IColumnDefinion column);
+        internal abstract IEnumerator<string> InsertReturningClause_at_End(IColumnDefinion column);
+
+#warning !!!
         protected static string[] MakeBinary(string[] Left, string op, string[] Right)
         {
             var result = new string[Left.Length + 1 + Right.Length];

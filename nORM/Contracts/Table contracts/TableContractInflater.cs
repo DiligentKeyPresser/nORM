@@ -46,39 +46,6 @@ namespace nORM
             consgen.Emit(OpCodes.Ldarg_2);
             consgen.Emit(OpCodes.Call, BaseConstructor);
 
-            var Insertables = TableContractType.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == TypeOf.IInsertable).
-                Select(i => i.GetGenericArguments()[0]).Distinct().ToArray();
-            foreach (var insertable in Insertables)
-            {
-                var InsertOne = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { insertable });
-                var InsertMethod = BasicTableType.GetMethod("InsertOne", BindingFlags.NonPublic | BindingFlags.Instance).MakeGenericMethod(insertable);
-
-                var ins_one_body = InsertOne.GetILGenerator();
-                ins_one_body.Emit(OpCodes.Ldarg_0);
-                ins_one_body.Emit(OpCodes.Ldarg_1);
-                ins_one_body.Emit(OpCodes.Call, InsertMethod);
-                ins_one_body.Emit(OpCodes.Ret);
-
-                var InsertRange = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IEnumerable_generic.MakeGenericType(insertable) });
-                var InsertRangeMethod = BasicTableType.GetMethod("InsertMany", BindingFlags.NonPublic | BindingFlags.Instance).MakeGenericMethod(insertable);
-
-                var ins_range_body = InsertRange.GetILGenerator();
-                ins_range_body.Emit(OpCodes.Ldarg_0);
-                ins_range_body.Emit(OpCodes.Ldarg_1);
-                ins_range_body.Emit(OpCodes.Call, InsertRangeMethod);
-                ins_range_body.Emit(OpCodes.Ret);
-
-                var InsertSubQuery = ClassBuilder.DefineMethod("Insert", MethodAttributes.HideBySig | MethodAttributes.Public | MethodAttributes.Virtual, typeof(void), new Type[] { TypeOf.IQueryable_generic.MakeGenericType(insertable) });
-                var InsertSubQueryMethod = BasicTableType.GetMethod("InsertQueryable", BindingFlags.NonPublic | BindingFlags.Instance).MakeGenericMethod(insertable);
-
-                var ins_q_body = InsertSubQuery.GetILGenerator();
-                ins_q_body.Emit(OpCodes.Ldarg_0);
-                ins_q_body.Emit(OpCodes.Ldarg_1);
-                ins_q_body.Emit(OpCodes.Call, InsertSubQueryMethod);
-                ins_q_body.Emit(OpCodes.Ret);
-            }
-
-
 #warning insert additional operations here
 
             consgen.Emit(OpCodes.Ret);

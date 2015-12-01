@@ -1,5 +1,4 @@
-﻿using MakeSQL;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -13,39 +12,42 @@ namespace nORM
     /// </summary>
     public interface ITable<RowContract> : IQueryable<RowContract>
     {
-        /// <summary> Gets a name of the table, based on contract declaration. </summary>
-        QualifiedIdentifier Name { get; }
-
         /// <summary> Collection of columns of the table </summary>
         IReadOnlyList<DataColumn> Columns { get; }
 
         /// <summary> Deletes rows from the table, based on a predicate. Returns a number of the affected rows. </summary>
         int Delete(Expression<Func<RowContract, bool>> predicate);
-    }
 
-    /// <summary>
-    /// Extension to the table contract.
-    /// Used to define a field subset which can be used in the INSERT statement.
-    /// </summary>
-    /// <typeparam name="RowSubcontract"> A field subset without primary keys and evaluated columns. </typeparam>
-    public interface IInsertable<RowSubcontract>
-    {
         /// <summary>
         /// A single INSERT query
         /// </summary>
-        /// <param name="Row"> A single row to be inserted </param>
-        void Insert(RowSubcontract Row);
+        /// <param name="OneValue"> A single row to be inserted </param>
+        void Insert<SubRowContract>(SubRowContract OneValue);
+
+        /// <summary>
+        /// A single INSERT query.
+        /// Returns a value of requered column.
+        /// </summary>
+        /// <param name="OneValue"> A single row to be inserted </param>
+        /// <param name="ReturningColumn"> A column to be returned </param>
+        TRes InsertRet<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn);
 
         /// <summary>
         /// An INSERT query with table constructor 
         /// </summary>
-        /// <param name="Rows"> A collection of rows to insert </param>
-        void Insert(IEnumerable<RowSubcontract> Rows);
+        /// <param name="Collection"> A collection of rows to insert </param>
+        void Insert<SubRowContract>(IEnumerable<SubRowContract> Collection);
 
         /// <summary>
         /// An INSERT operation with subquery used as a source.
         /// </summary>
         /// <param name="Source"> A subquery to select source rows </param>
-        void Insert(IQueryable<RowSubcontract> Source);
+        void Insert<SubRowContract>(IQueryable<SubRowContract> Source);
+
+        RowContract InsertRet<SubRowContract>(SubRowContract OneValue);
+
+        IEnumerable<RowContract> InsertRet<SubRowContract>(IEnumerable<SubRowContract> Collection);
+
+        IEnumerable<RowContract> InsertRet<SubRowContract>(IQueryable<SubRowContract> Source);
     }
 }

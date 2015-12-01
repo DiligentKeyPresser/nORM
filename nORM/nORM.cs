@@ -70,34 +70,82 @@ namespace nORM
         public IReadOnlyList<DataColumn> Columns => RowContractInfo<RowContract>.Columns;
 
         /// <summary> Gets a name of the table, based on contract declaration. </summary>
-        public QualifiedIdentifier Name { get; }
+        internal QualifiedIdentifier Name { get; }
 
-        protected void InsertOne<SubRowContract>(SubRowContract OneValue) => InsertMany(new SubRowContract[] { OneValue });
+        public void Insert<SubRowContract>(SubRowContract OneValue) => Insert((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue }));
 
-        protected void InsertMany<SubRowContract>(IEnumerable<SubRowContract> Collection)
+        public TRes InsertRet<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn)
+        {
+            if (!typeof(TRes).IsAssignableFrom(ReturningColumn.ColumnType))
+                throw new InvalidContractException($"Column '{ReturningColumn.ContractName}' in a contract '{nameof(RowContract)}' cannot be cast to a type '{nameof(TRes)}'");
+
+#warning cache this
+            var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+            var Query = new InsertQuery(Name, SubRowColumns, new Values(new object[][] { RowContractDecomposer<SubRowContract>.Decompose(OneValue) }), ReturningColumn.FieldName);
+            var SQL = Query.Query.Build(Context.QueryContext);
+            var res = Context.ExecuteScalar(SQL);
+            if (res == DBNull.Value)
+            {
+                if (Nullable.GetUnderlyingType(ReturningColumn.ColumnType) == null)
+                    throw new InvalidContractException($"InsertReturning: 'NULL' value in a non-nullable field '{ReturningColumn.FieldName}'.");
+                return default(TRes);
+            }
+            else return (TRes) res;
+        }
+
+        public RowContract InsertRet<SubRowContract>(SubRowContract OneValue) => InsertRet((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue })).Single();
+
+        public IEnumerable<RowContract> InsertRet<SubRowContract>(IEnumerable<SubRowContract> Collection)
         {
             if (Collection.Any())
             {
 #warning cache this
                 var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
-                var Query = new InsertQuery(Name, SubRowColumns, new Values(Collection.Select(RowContractDecomposer<SubRowContract>.Decompose)));
+                var Query = new InsertQuery(Name, SubRowColumns, new Values(Collection.Select(RowContractDecomposer<SubRowContract>.Decompose)), Star.Instance);
                 var SQL = Query.Query.Build(Context.QueryContext);
-                Context.ExecuteNonQuery(SQL);
+                return Context.ExecuteContract<RowContract>(SQL);
             }
+            else return new RowContract[0];
         }
 
-        protected void InsertQueryable<SubRowContract>(IQueryable<SubRowContract> Source)
+        public IEnumerable<RowContract> InsertRet<SubRowContract>(IQueryable<SubRowContract> Source)
         {
             var row_source = Source as RowSource;
             if (row_source != null)
             {
 #warning cache this
                 var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
-                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns));
+                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns), Star.Instance);
+                var SQL = Query.Query.Build(Context.QueryContext);
+                return Context.ExecuteContract<RowContract>(SQL);
+            }
+            else return InsertRet(Source.AsEnumerable());
+        }
+        
+        public void Insert<SubRowContract>(IEnumerable<SubRowContract> Collection)
+        {
+            if (Collection.Any())
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, new Values(Collection.Select(RowContractDecomposer<SubRowContract>.Decompose)), null);
                 var SQL = Query.Query.Build(Context.QueryContext);
                 Context.ExecuteNonQuery(SQL);
             }
-            else InsertMany(Source);
+        }
+
+        public void Insert<SubRowContract>(IQueryable<SubRowContract> Source)
+        {
+            var row_source = Source as RowSource;
+            if (row_source != null)
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns), null);
+                var SQL = Query.Query.Build(Context.QueryContext);
+                Context.ExecuteNonQuery(SQL);
+            }
+            else Insert(Source.AsEnumerable());
         }
 
         public int Delete(Expression<Func<RowContract, bool>> predicate)
