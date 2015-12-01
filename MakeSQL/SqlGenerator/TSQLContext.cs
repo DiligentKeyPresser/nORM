@@ -31,12 +31,12 @@ namespace MakeSQL
             }
         }
 
-        internal override IEnumerator<string> InsertReturningClause_at_End(LocalIdentifier column)
+        internal override IEnumerator<string> InsertReturningClause_at_End(IColumnDefinion column)
         {
             yield break;
         }
 
-        internal override IEnumerator<string> InsertReturningClause_at_Values(LocalIdentifier column)
+        internal override IEnumerator<string> InsertReturningClause_at_Values(IColumnDefinion column)
         {
             yield return "OUTPUT inserted.";
 

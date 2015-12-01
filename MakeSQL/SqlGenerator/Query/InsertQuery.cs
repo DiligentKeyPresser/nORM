@@ -7,12 +7,12 @@ namespace MakeSQL
         private QualifiedIdentifier Into;
         private IColumnDefinion[] fields;
         private IInsertSource SourceData;
-        private LocalIdentifier Output;
+        private IColumnDefinion Output;
 
         // some methods like `Where` change state just after cloning, so we cannot assign the builder in a constructor
         public Builder Query => new Builder(Compile);
 
-        public InsertQuery(QualifiedIdentifier Into, IColumnDefinion[] Fields, IInsertSource From, LocalIdentifier Output)
+        public InsertQuery(QualifiedIdentifier Into, IColumnDefinion[] Fields, IInsertSource From, IColumnDefinion Output)
         {
             this.Into = Into;
             this.Output = Output;

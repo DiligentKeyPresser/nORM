@@ -9,7 +9,7 @@ namespace MakeSQL
         public static PostgreSQLContext Singleton { get; } = new PostgreSQLContext();
         #endregion
 
-        internal override IEnumerator<string> InsertReturningClause_at_End(LocalIdentifier column)
+        internal override IEnumerator<string> InsertReturningClause_at_End(IColumnDefinion column)
         {
 #if DEBUG
             yield return "\r\n";
@@ -21,7 +21,7 @@ namespace MakeSQL
 
         }
 
-        internal override IEnumerator<string> InsertReturningClause_at_Values(LocalIdentifier column)
+        internal override IEnumerator<string> InsertReturningClause_at_Values(IColumnDefinion column)
         {
             yield break;
         }

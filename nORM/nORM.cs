@@ -74,7 +74,7 @@ namespace nORM
 
         public void Insert<SubRowContract>(SubRowContract OneValue) => Insert((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue }));
 
-        public TRes InsertReturning<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn)
+        public TRes InsertRet<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn)
         {
             if (!typeof(TRes).IsAssignableFrom(ReturningColumn.ColumnType))
                 throw new InvalidContractException($"Column '{ReturningColumn.ContractName}' in a contract '{nameof(RowContract)}' cannot be cast to a type '{nameof(TRes)}'");
@@ -93,6 +93,35 @@ namespace nORM
             else return (TRes) res;
         }
 
+        public RowContract InsertRet<SubRowContract>(SubRowContract OneValue) => InsertRet((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue })).Single();
+
+        public IEnumerable<RowContract> InsertRet<SubRowContract>(IEnumerable<SubRowContract> Collection)
+        {
+            if (Collection.Any())
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, new Values(Collection.Select(RowContractDecomposer<SubRowContract>.Decompose)), Star.Instance);
+                var SQL = Query.Query.Build(Context.QueryContext);
+                return Context.ExecuteContract<RowContract>(SQL);
+            }
+            else return new RowContract[0];
+        }
+
+        public IEnumerable<RowContract> InsertRet<SubRowContract>(IQueryable<SubRowContract> Source)
+        {
+            var row_source = Source as RowSource;
+            if (row_source != null)
+            {
+#warning cache this
+                var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
+                var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns), Star.Instance);
+                var SQL = Query.Query.Build(Context.QueryContext);
+                return Context.ExecuteContract<RowContract>(SQL);
+            }
+            else return InsertRet(Source.AsEnumerable());
+        }
+        
         public void Insert<SubRowContract>(IEnumerable<SubRowContract> Collection)
         {
             if (Collection.Any())
@@ -116,7 +145,7 @@ namespace nORM
                 var SQL = Query.Query.Build(Context.QueryContext);
                 Context.ExecuteNonQuery(SQL);
             }
-            else Insert(Source);
+            else Insert(Source.AsEnumerable());
         }
 
         public int Delete(Expression<Func<RowContract, bool>> predicate)

@@ -30,7 +30,7 @@ namespace nORM
         /// </summary>
         /// <param name="OneValue"> A single row to be inserted </param>
         /// <param name="ReturningColumn"> A column to be returned </param>
-        TRes InsertReturning<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn);
+        TRes InsertRet<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn);
 
         /// <summary>
         /// An INSERT query with table constructor 
@@ -43,5 +43,11 @@ namespace nORM
         /// </summary>
         /// <param name="Source"> A subquery to select source rows </param>
         void Insert<SubRowContract>(IQueryable<SubRowContract> Source);
+
+        RowContract InsertRet<SubRowContract>(SubRowContract OneValue);
+
+        IEnumerable<RowContract> InsertRet<SubRowContract>(IEnumerable<SubRowContract> Collection);
+
+        IEnumerable<RowContract> InsertRet<SubRowContract>(IQueryable<SubRowContract> Source);
     }
 }
