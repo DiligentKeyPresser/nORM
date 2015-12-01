@@ -24,6 +24,13 @@ namespace nORM
         /// <param name="OneValue"> A single row to be inserted </param>
         void Insert<SubRowContract>(SubRowContract OneValue);
 
+
+        // Insert returning just one column is only available for the single row version
+        // (there is no way to match value to each row otherwise).
+        // Getting whole row instead in not expensive in this case though.
+        // That means this overload can be removed.
+
+        [Obsolete("will be removed")]
         /// <summary>
         /// A single INSERT query.
         /// Returns a value of requered column.

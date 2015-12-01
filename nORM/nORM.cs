@@ -74,6 +74,7 @@ namespace nORM
 
         public void Insert<SubRowContract>(SubRowContract OneValue) => Insert((IEnumerable<SubRowContract>)(new SubRowContract[] { OneValue }));
 
+        [Obsolete("will be removed")]
         public TRes InsertRet<SubRowContract, TRes>(SubRowContract OneValue, DataColumn ReturningColumn)
         {
             if (!typeof(TRes).IsAssignableFrom(ReturningColumn.ColumnType))
