@@ -111,4 +111,11 @@ namespace nORM
             ContractType = null;
         }
     }
+
+#warning корректно реализовать исключение!
+    [Serializable]
+    public class ContractMismatchException : Exception
+    {
+        public ContractMismatchException(string Message) : base(Message) { }
+    }
 }

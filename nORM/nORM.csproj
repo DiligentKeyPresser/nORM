@@ -49,6 +49,7 @@
     <Compile Include="Contracts\Contracts.cs" />
     <Compile Include="Contracts\Row contracts\Columns.cs" />
     <Compile Include="Contracts\Row contracts\RowContractDecomposer.cs" />
+    <Compile Include="Contracts\Row contracts\RowContractDummy.cs" />
     <Compile Include="Contracts\Row contracts\RowContractMetadata.cs" />
     <Compile Include="Contracts\Table contracts\Declarations.cs" />
     <Compile Include="DatabaseContext\DatabaseConnector.cs" />
