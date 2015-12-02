@@ -60,9 +60,9 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-        //    CopyDatabase.Table1.Insert(new { t = 4, y = 8 });
+            //    CopyDatabase.Table1.Insert(new { t = 4, y = 8 });
 
-            CopyDatabase.Table1.Insert(Enumerable.Range(0,2).Select(i=>new { Count = i, Name = i.ToString() }));
+            foreach (var r in CopyDatabase.Table1.InsertRet(Enumerable.Range(0, 2).Select(i => new { Count = i, Name = i.ToString() }))) Console.WriteLine(r.ID);
 
             Console.ReadKey();
         }

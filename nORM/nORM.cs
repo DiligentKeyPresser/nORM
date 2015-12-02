@@ -169,11 +169,9 @@ namespace nORM
 
         #region INSERT support
 
-        void ITable<RowContract>.Insert(object OneValue) => ((ITable<RowContract>)this).Insert(new object[] { OneValue });
-
-        void ITable<RowContract>.Insert(IEnumerable Collection)
+        private InsertQuery BuildInsertQuery(IEnumerable Rows, IColumnDefinion Output)
         {
-            var enumerator = Collection.GetEnumerator();
+            var enumerator = Rows.GetEnumerator();
             if (enumerator.MoveNext())
             {
                 var ElementType = enumerator.Current.GetType();
@@ -186,13 +184,12 @@ namespace nORM
                         column = ContractColumns.SingleOrDefault(col => col.ContractName == p.Name)
                     }).ToArray();
 
-                if (ElementProps.Any(p=>p.column == null)) throw new ContractMismatchException($"Table contract '{nameof(RowContract)}' does not contain these properties: {string.Join(", ", ElementProps.Where(p => p.column == null).Select(p => "'" + p.property.Name + "'"))}");
+                if (ElementProps.Any(p => p.column == null)) throw new ContractMismatchException($"Table contract '{nameof(RowContract)}' does not contain these properties: {string.Join(", ", ElementProps.Where(p => p.column == null).Select(p => "'" + p.property.Name + "'"))}");
 
                 var ElementColumns = ElementProps.Where(p => p.column != null).ToArray();
 #warning Check types!
 
                 var raw = new List<object[]>();
-
                 do
                 {
                     if (ElementType != enumerator.Current.GetType()) throw new ArgumentException("Inserted collection should contain elements of same type.");
@@ -200,9 +197,26 @@ namespace nORM
                     raw.Add(ElementColumns.Select(c => c.property.GetValue(enumerator.Current)).ToArray());
                 } while (enumerator.MoveNext());
 
-                var INSERT = new InsertQuery(Name, ElementColumns.Select(c => c.column.FieldName).ToArray(), new Values(raw), null);
-                Context.ExecuteNonQuery(INSERT.Query.Build(Context.QueryContext));
+                return new InsertQuery(Name, ElementColumns.Select(c => c.column.FieldName).ToArray(), new Values(raw), Output);
             }
+            else return null;
+        }
+
+        void ITable<RowContract>.Insert(object OneValue) => ((ITable<RowContract>)this).Insert(new object[] { OneValue });
+
+        void ITable<RowContract>.Insert(IEnumerable Collection)
+        {
+            var INSERT = BuildInsertQuery(Collection, null);
+            Context.ExecuteNonQuery(INSERT.Query.Build(Context.QueryContext));
+
+        }
+
+        RowContract ITable<RowContract>.InsertRet(object OneValue) => ((ITable<RowContract>)this).InsertRet(new object[] { OneValue }).Single();
+
+        IEnumerable<RowContract> ITable<RowContract>.InsertRet(IEnumerable Collection)
+        {
+            var INSERT = BuildInsertQuery(Collection, Star.Instance);
+            return Context.ExecuteContract<RowContract>(INSERT.Query.Build(Context.QueryContext));
         }
 
         #endregion
