@@ -4,6 +4,8 @@ using System.Reflection.Emit;
 
 namespace nORM
 {
+    internal abstract class DatabaseRow { }
+
     /// <summary> Creates instances of the given row contract </summary>
     internal static class RowContractInflater<RowContract>
     {

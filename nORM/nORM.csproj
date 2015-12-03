@@ -48,21 +48,22 @@
   <ItemGroup>
     <Compile Include="Contracts\Contracts.cs" />
     <Compile Include="Contracts\Row contracts\Columns.cs" />
-    <Compile Include="Contracts\Row contracts\RowContractDecomposer.cs" />
     <Compile Include="Contracts\Row contracts\RowContractMetadata.cs" />
     <Compile Include="Contracts\Table contracts\Declarations.cs" />
     <Compile Include="DatabaseContext\DatabaseConnector.cs" />
     <Compile Include="DatabaseContext\DatabaseContext.cs" />
-    <Compile Include="DatabaseContext\PostgreSQL.cs" />
-    <Compile Include="DatabaseContext\SqlServer.cs" />
-    <Compile Include="Emit.cs" />
+    <Compile Include="DatabaseContext\Connectors\PostgreSQL.cs" />
+    <Compile Include="DatabaseContext\Connectors\SqlServer.cs" />
+    <Compile Include="Reflection\Emit.cs" />
     <Compile Include="Contracts\Row contracts\RowContractInflater.cs" />
     <Compile Include="Contracts\Table contracts\TableContractInflater.cs" />
-    <Compile Include="Materialization.cs" />
-    <Compile Include="nORM.cs" />
-    <Compile Include="PredicateTranslator.cs" />
+    <Compile Include="Queryables\Materialization.cs" />
+    <Compile Include="Reflection\PredicateTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Provider.cs" />
+    <Compile Include="Queryables\Provider.cs" />
+    <Compile Include="Queryables\AbstractQueryable.cs" />
+    <Compile Include="Queryables\Root.cs" />
+    <Compile Include="Queryables\Table\Table.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExpLess\ExpLess.csproj">
