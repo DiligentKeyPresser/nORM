@@ -191,10 +191,12 @@ namespace nORM
             // set clause
 
             var Fields = new List<Tuple<string, Expression>>();
+            ParameterExpression input = null;
 
             if (transformation.NodeType == ExpressionType.Lambda)
             {
                 var body = (transformation as LambdaExpression).Body;
+                input = (transformation as LambdaExpression).Parameters[0];
                 if (body.NodeType == ExpressionType.New)
                 {
                     var New = body as NewExpression;
@@ -213,7 +215,7 @@ namespace nORM
                 if (!Columns.Any(c => c.ContractName == f.Item1))
                     throw new ContractMismatchException($"Field '{f.Item1}' does not exist in the contract ('{nameof(RowContract)}').");
 
-                var sql_setter = Context.QueryContext.BuildPredicate(PreEvaluate(f.Item2), null, member =>
+                var sql_setter = Context.QueryContext.BuildPredicate(PreEvaluate(f.Item2), input, member =>
                 {
 #if DEBUG
                     if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");

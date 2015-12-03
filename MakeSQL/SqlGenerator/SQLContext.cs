@@ -117,8 +117,8 @@ namespace MakeSQL
                     case ExpressionType.GreaterThanOrEqual: return MakeBinary(Left, " >= ", Right);
                     case ExpressionType.LessThan: return MakeBinary(Left, " < ", Right);
                     case ExpressionType.LessThanOrEqual: return MakeBinary(Left, " <= ", Right);
+                    case ExpressionType.Add: return MakeBinary(Left, " + ", Right);
 
-                    case ExpressionType.Add:
                     case ExpressionType.AddChecked:
                     case ExpressionType.And:
                     case ExpressionType.AndAlso:
