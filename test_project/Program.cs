@@ -21,12 +21,6 @@ namespace test_project
         string Name { get; }
     }
 
-    public class Ins : ITable1RowData
-    {
-        public int Count => 222;
-        public string Name => "two";
-    }
-
     public interface ITable2Row 
     {
         [Field("id")]
@@ -60,9 +54,7 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-            //    CopyDatabase.Table1.Insert(new { t = 4, y = 8 });
-
-            foreach (var r in CopyDatabase.Table1.InsertRet(Enumerable.Range(0, 2).Select(i => new { Count = i, Name = i.ToString() }))) Console.WriteLine(r.ID);
+            CopyDatabase.Table1.Update(r => r.Count > 8, r => new { Count = 9/*, Name = "testvalue"*/ });
 
             Console.ReadKey();
         }

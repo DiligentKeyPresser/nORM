@@ -27,6 +27,8 @@ namespace nORM
         /// <param name="Collection"> A collection of rows to insert </param>
         void Insert(IEnumerable Collection);
 
+        void Update(Expression<Func<RowContract, bool>> predicate, Expression<Func<RowContract, object>> transformation);
+
         /// <summary> A single INSERT query. Returns a whole inserted row back. </summary>
         /// <param name="OneValue"> A single row to be inserted </param>
         RowContract InsertRet(object OneValue);

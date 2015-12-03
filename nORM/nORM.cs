@@ -174,6 +174,65 @@ namespace nORM
 
         #endregion
 
+        void ITable<RowContract>.Update(Expression<Func<RowContract, bool>> predicate, Expression<Func<RowContract, object>> transformation)
+        {
+            // predicate 
+
+            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(predicate), null, member =>
+            {
+#if DEBUG
+                if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+            });
+            if (sql_predicate == null) throw new NotSupportedException("This predicate cannot be translated into an SQL code.");
+
+            // set clause
+
+            var Fields = new List<Tuple<string, Expression>>();
+
+            if (transformation.NodeType == ExpressionType.Lambda)
+            {
+                var body = (transformation as LambdaExpression).Body;
+                if (body.NodeType == ExpressionType.New)
+                {
+                    var New = body as NewExpression;
+                    
+                    for (int i = 0; i < New.Members.Count; i++)
+                        Fields.Add(new Tuple<string, Expression>(New.Members[i].Name, New.Arguments[i]));
+                }
+                else throw new NotSupportedException("UPDATE Lambda must be a 'new' expression.");
+            }
+            else throw new NotSupportedException("UPDATE Expression must be a Lambda expression.");
+
+            var Set = new List<Tuple<LocalIdentifier, string[]>>();
+
+            foreach (var f in Fields)
+            {
+                if (!Columns.Any(c => c.ContractName == f.Item1))
+                    throw new ContractMismatchException($"Field '{f.Item1}' does not exist in the contract ('{nameof(RowContract)}').");
+
+                var sql_setter = Context.QueryContext.BuildPredicate(PreEvaluate(f.Item2), null, member =>
+                {
+#if DEBUG
+                    if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                    return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+                });
+                if (sql_setter == null) throw new NotSupportedException($"Expression '{f.Item2}' cannot be translated into a valid SQL code.");
+
+#warning Check contract types
+#warning concat
+                Set.Add(new Tuple<LocalIdentifier, string[]>(Columns.Single(c=>c.ContractName == f.Item1).FieldName, sql_setter));
+            }
+
+            var UPDATE = new UpdateQuery(Name, string.Concat(sql_predicate), Set);
+            Context.ExecuteNonQuery(UPDATE.Query.Build(Context.QueryContext));
+        }
+
+
         /// <summary> This constructor will be called dynamically </summary>
         internal Table(DatabaseContext ConnectionContext, QualifiedIdentifier TableName)
             : base(ConnectionContext, new SelectQuery(TableName, RowContractInfo<RowContract>.Columns.Select(c=>c.FieldName).ToArray()))

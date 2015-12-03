@@ -52,6 +52,7 @@
     <Compile Include="SqlGenerator\PostgreSQL.cs" />
     <Compile Include="SqlGenerator\Query\DeleteQuery.cs" />
     <Compile Include="SqlGenerator\Query\InsertQuery.cs" />
+    <Compile Include="SqlGenerator\Query\UpdateQuery.cs" />
     <Compile Include="SqlGenerator\SQLContext.cs" />
     <Compile Include="SqlGenerator\Query\SelectQuery.cs" />
     <Compile Include="SqlGenerator\TSQLContext.cs" />
