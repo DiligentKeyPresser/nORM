@@ -29,10 +29,15 @@ namespace MakeSQL
 
         internal virtual IEnumerator<string> EscapeLiteral(object Value)
         {
-            if (Value.GetType() == typeof(int))
+            if (Value.GetType() == typeof(short) || Value.GetType() == typeof(int))
             {
                 yield return Value.ToString();
                 yield break; 
+            }
+            if (Value.GetType() == typeof(bool))
+            {
+                yield return (bool)Value ? "1 = 1" : "1 = 0";
+                yield break;
             }
             if (Value.GetType() == typeof(string))
             {
@@ -67,22 +72,10 @@ namespace MakeSQL
             var e_constant = E as ConstantExpression;
             if (e_constant != null)
             {
-                switch (e_constant.Type.Name)
-                {
-                    case nameof(String):
-                        return new string[] { (string)e_constant.Value };
-
-                    case nameof(Boolean):
-                        return new string[] { (bool)e_constant.Value ? "1 = 1" : "1 = 0" };
-
-                    case nameof(Int16):
-                    case nameof(Int32):
-                        return new string[] { e_constant.Value.ToString() };
-
-                    default:
-#warning add debug output
-                        return null;
-                }
+                var literal = EscapeLiteral(e_constant.Value);
+                List<string> res = new List<string>();
+                while (literal.MoveNext()) res.Add(literal.Current);
+                return res.ToArray();
             }
 
             var e_member = E as MemberExpression;
@@ -117,8 +110,8 @@ namespace MakeSQL
                     case ExpressionType.GreaterThanOrEqual: return MakeBinary(Left, " >= ", Right);
                     case ExpressionType.LessThan: return MakeBinary(Left, " < ", Right);
                     case ExpressionType.LessThanOrEqual: return MakeBinary(Left, " <= ", Right);
+                    case ExpressionType.Add: return MakeBinary(Left, " + ", Right);
 
-                    case ExpressionType.Add:
                     case ExpressionType.AddChecked:
                     case ExpressionType.And:
                     case ExpressionType.AndAlso:
