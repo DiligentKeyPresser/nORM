@@ -122,6 +122,7 @@ namespace ExpLess
                                 }
                             }
 
+#warning what if bitwise????
                             if (E.NodeType == ExpressionType.ExclusiveOr)
                             {
                                 if (const_left != null) if ((bool)const_left.Value == false) return new_right;
