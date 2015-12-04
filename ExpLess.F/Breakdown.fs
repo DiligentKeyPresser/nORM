@@ -35,6 +35,7 @@ type internal ExpressionKind =
     | Unary of UnaryOp * Expression                   // unary operator
     | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
     | Call of obj : Expression * met : MethodInfo * args : Expression list
+    | Constant
     | Unsupported of string                           // something else
 
 let internal categorize (E : Expression) = 
@@ -124,10 +125,35 @@ let internal categorize (E : Expression) =
     | ExpressionType.Call -> let e_call = E :?> MethodCallExpression
                              Call (e_call.Object, e_call.Method, List.ofSeq e_call.Arguments)
     
+    // Constant
+    | ExpressionType.Constant -> Constant
 
+    // Implement later
+    | ExpressionType.Extension | ExpressionType.Unbox | ExpressionType.MemberInit | ExpressionType.ListInit | ExpressionType.Index 
+            -> Unsupported ("Expression '" + E.NodeType.ToString() + "' will be implemented later.")
+    
+    // These operations cannot be found in lambda code
+    | ExpressionType.Dynamic -> Unsupported "An expression tree may not contain a dynamic operation"
+    
+    | ExpressionType.RuntimeVariables | ExpressionType.Loop | ExpressionType.Label | ExpressionType.Goto | ExpressionType.Throw
+    | ExpressionType.Switch | ExpressionType.Block | ExpressionType.Try
+            -> Unsupported "A lambda expression with a statement body cannot be converted to an expression tree"
 
+    | ExpressionType.AddAssignChecked | ExpressionType.MultiplyAssignChecked | ExpressionType.SubtractAssignChecked | ExpressionType.Assign
+    | ExpressionType.AddAssign | ExpressionType.AndAssign | ExpressionType.DivideAssign | ExpressionType.ExclusiveOrAssign
+    | ExpressionType.LeftShiftAssign | ExpressionType.ModuloAssign | ExpressionType.MultiplyAssign | ExpressionType.RightShiftAssign
+    | ExpressionType.SubtractAssign | ExpressionType.OrAssign | ExpressionType.PowerAssign | ExpressionType.PreIncrementAssign
+    | ExpressionType.PreDecrementAssign | ExpressionType.PostIncrementAssign | ExpressionType.PostDecrementAssign
+            -> Unsupported "An expression tree may not contain an assignment operator"
 
+    // Unable to produce next ones
+    | ExpressionType.Parameter | ExpressionType.Default | ExpressionType.IsTrue | ExpressionType.IsFalse | ExpressionType.Increment
+    | ExpressionType.Decrement | ExpressionType.DebugInfo | ExpressionType.TypeEqual
+            -> Unsupported "unexpected ExpressionType"
 
+    // new                        
+    | ExpressionType.New -> Unsupported "Creating new objects has not been implemented" 
+    
     // Delegate invocation                         
     | ExpressionType.Invoke -> Unsupported "Delegate invocation has not been implemented" 
 

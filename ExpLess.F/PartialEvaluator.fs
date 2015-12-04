@@ -4,6 +4,7 @@ open System
 open System.Linq.Expressions
 open System.Reflection
 open Breakdown
+open Purity
 
 
 let rec public PreEvaluate (E : Expression) = 
@@ -64,7 +65,7 @@ let rec public PreEvaluate (E : Expression) =
                          | same_exp when same_exp = exp -> E
                          | new_exp -> upcast Expression.TypeIs(new_exp, t)         
     
-    | Call (obj, met, args) -> let HasSideEffects = false
+    | Call (obj, met, args) -> let HasSideEffects = not (IsPure met)
                                if HasSideEffects then raise(new InvalidOperationException("method '" + met.Name + "' is not proved to be pure"))
                                else let new_args = List.map PreEvaluate args
                                     let new_object  = PreEvaluate obj
@@ -72,6 +73,8 @@ let rec public PreEvaluate (E : Expression) =
                                     
                                     if (new_object :? ConstantExpression && List.fold (fun all (elem : Expression) -> all && elem :? ConstantExpression) true new_args)
                                     then upcast Expression.Constant(Expression.Lambda(new_callexpr).Compile().DynamicInvoke(null), E.Type) 
-                                    else upcast new_callexpr                       
+                                    else upcast new_callexpr  
+    
+    | Constant -> E                     
                        
     | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
