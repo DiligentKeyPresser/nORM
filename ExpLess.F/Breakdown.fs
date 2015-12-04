@@ -1,6 +1,7 @@
 ﻿module private ExpLess.Breakdown
 
 open System.Linq.Expressions
+open System.Reflection
 
 // This module performs an internal expression classification.
 
@@ -30,7 +31,9 @@ type internal ExpressionKind =
     | Quote  of Expression           // unary expression, ExpressionType.Quote 
     | Lambda of LambdaExpression     // lambda expression
     | Binary of left : Expression * right : Expression * BinaryExpressionKind
-    | Unsupported of string          // something else
+    | ParamAccess of ParameterExpression              // member access expression, parameter
+    | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
+    | Unsupported of string                           // something else
 
 let inline internal categorize (E : Expression) = 
     match E.NodeType with
@@ -80,5 +83,13 @@ let inline internal categorize (E : Expression) =
     | ExpressionType.Power | ExpressionType.AddChecked | ExpressionType.MultiplyChecked | ExpressionType.SubtractChecked ->
             Unsupported ("this binary operator (" + E.NodeType.ToString() + ") is not implemented yet")
     
+    // Lambda parameter or constant value access
+    | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
+                                     match e_member.Expression.NodeType with
+                                     | ExpressionType.Parameter -> match e_member.Member with
+                                                                   | null -> ParamAccess (e_member.Expression :?> ParameterExpression)
+                                                                   | _ -> Unsupported "parameter member access is not implemented yet"
+                                     | ExpressionType.Constant  -> ConstAccess (e_member.Expression :?> ConstantExpression, e_member.Member)
+                                     | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"

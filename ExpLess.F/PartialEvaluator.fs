@@ -2,6 +2,7 @@
 
 open System
 open System.Linq.Expressions
+open System.Reflection
 open Breakdown
 
 
@@ -36,6 +37,10 @@ let rec public PreEvaluate (E : Expression) =
             | _, _, _ when new_left = left && new_right = right -> E
             | _ -> upcast Expression.MakeBinary(E.NodeType, new_left, new_right)
              
+    | ParamAccess _ -> E
 
+    | ConstAccess (exp, mem) -> match mem with
+                                | :? FieldInfo -> upcast Expression.Constant((mem :?> FieldInfo).GetValue(exp.Value))
+                                | _ -> raise (new NotImplementedException ("Constant member access is not implemented for this type of member: " + mem.GetType().Name))
                       
     | Unsupported reason -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + reason + ".")) 
