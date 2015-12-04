@@ -1,5 +1,6 @@
 ﻿module private ExpLess.Breakdown
 
+open System
 open System.Linq.Expressions
 open System.Reflection
 
@@ -25,8 +26,9 @@ type internal BinaryExpressionKind =
     | ArrayIndex
 
 type internal ExpressionKind =
-    | Quote  of Expression           // unary expression, ExpressionType.Quote 
-    | Lambda of LambdaExpression     // lambda expression
+    | Quote  of Expression                            // unary expression, ExpressionType.Quote 
+    | Lambda of LambdaExpression                      // lambda expression
+    | TypeIs of Expression * Type                     // 'is' operator
     | Binary of left : Expression * right : Expression * BinaryExpressionKind
     | ParamAccess of ParameterExpression              // member access expression, parameter
     | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
@@ -112,6 +114,14 @@ let inline internal categorize (E : Expression) =
     // Ternary operator ? :
     | ExpressionType.Conditional -> let e_cond = E :?> ConditionalExpression
                                     Conditional (e_cond.Test, e_cond.IfTrue, e_cond.IfFalse)
+
+    // 'is' operator
+    | ExpressionType.TypeIs -> let e_is = E :?> TypeBinaryExpression
+                               TypeIs (e_is.Expression, e_is.TypeOperand)
+
+    // NewArrayExpression was not useful anyway
+    | ExpressionType.NewArrayInit | ExpressionType.NewArrayBounds 
+            -> Unsupported ("expression '" + E.NodeType.ToString() + "' considered to be useless")
 
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"

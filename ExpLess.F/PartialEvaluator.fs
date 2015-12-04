@@ -58,5 +58,11 @@ let rec public PreEvaluate (E : Expression) =
                           | same_true, same_false when new_test = test && same_false = iffalse && same_true = iftrue -> E
                           | new_true, new_false -> upcast Expression.Condition(new_test, new_true, new_false)
 
+    | TypeIs (exp, t) -> match PreEvaluate exp with
+                         | const_exp when (const_exp :? ConstantExpression) ->
+                                upcast Expression.Constant(Expression.Lambda(Expression.TypeIs(const_exp, t)).Compile().DynamicInvoke(null), E.Type)
+                         | same_exp when same_exp = exp -> E
+                         | new_exp -> upcast Expression.TypeIs(new_exp, t)         
+                            
                       
     | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
