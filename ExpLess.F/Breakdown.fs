@@ -6,17 +6,14 @@ open System.Reflection
 // This module performs an internal expression classification.
 
 // Methods and types are not public because this classification is affected by 
-// the current domain (linq provider designing) heavily and tend to be useless outside.
+// the current domain (linq provider designing) heavily and tends to be useless outside.
 
 type internal LogicOp = Or | And | ExclusiveOr
-
 type internal ShiftOp = Left | Right
-
 type internal CompareOp = LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual | Equal | NotEqual
-
 type internal MathOp = Add | Subtract | Multiply | Divide | Modulo 
-
 type internal ShortCircuitLogicOp = AndAlso | OrElse
+type internal UnaryOp = Convert | TypeAs | ArrayLength | Negate | Not 
 
 type internal BinaryExpressionKind =
     | Shift      of ShiftOp   
@@ -33,6 +30,7 @@ type internal ExpressionKind =
     | Binary of left : Expression * right : Expression * BinaryExpressionKind
     | ParamAccess of ParameterExpression              // member access expression, parameter
     | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
+    | Unary of UnaryOp * Expression                   // unary operator
     | Unsupported of string                           // something else
 
 let inline internal categorize (E : Expression) = 
@@ -91,5 +89,26 @@ let inline internal categorize (E : Expression) =
                                                                    | _ -> Unsupported "parameter member access is not implemented yet"
                                      | ExpressionType.Constant  -> ConstAccess (e_member.Expression :?> ConstantExpression, e_member.Member)
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
+
+    // Unary operators
+    | ExpressionType.Convert | ExpressionType.TypeAs | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not
+        -> let e_unary = E :?> UnaryExpression
+           match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
+           | null, false, false -> match E.NodeType with
+                                   | ExpressionType.Convert -> Unary (Convert, e_unary.Operand)
+                                   | ExpressionType.TypeAs -> Unary (TypeAs, e_unary.Operand)
+                                   | ExpressionType.ArrayLength -> Unary (ArrayLength, e_unary.Operand)
+                                   | ExpressionType.Negate -> Unary (Negate, e_unary.Operand)
+                                   | ExpressionType.Not ->Unary (Not, e_unary.Operand)
+                                   | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
+           | _ -> Unsupported "this kind of unary operator is not implemented yet" 
+           
+    | ExpressionType.UnaryPlus // +...
+    | ExpressionType.NegateChecked | ExpressionType.ConvertChecked
+    | ExpressionType.OnesComplement // ~
+        -> Unsupported ("unary operator '" + E.NodeType.ToString() + "' is not implemented yet")
+
+    
+
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"

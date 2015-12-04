@@ -34,7 +34,7 @@ let rec public PreEvaluate (E : Expression) =
             | _, true, ShortLogic OrElse -> match (new_right :?> ConstantExpression).Value :?> bool with
                                              | true -> upcast Expression.Constant(true)
                                              | false  -> new_left            
-            | _, _, _ when new_left = left && new_right = right -> E
+            | _ when new_left = left && new_right = right -> E
             | _ -> upcast Expression.MakeBinary(E.NodeType, new_left, new_right)
              
     | ParamAccess _ -> E
@@ -42,5 +42,10 @@ let rec public PreEvaluate (E : Expression) =
     | ConstAccess (exp, mem) -> match mem with
                                 | :? FieldInfo -> upcast Expression.Constant((mem :?> FieldInfo).GetValue(exp.Value))
                                 | _ -> raise (new NotImplementedException ("Constant member access is not implemented for this type of member: " + mem.GetType().Name))
+    
+    | Unary (op, operand) -> match PreEvaluate operand with
+                             | new_op when (new_op :? ConstantExpression) -> upcast Expression.Constant(Expression.Lambda(Expression.MakeUnary(E.NodeType, new_op, E.Type)).Compile().DynamicInvoke(null), E.Type)
+                             | same_op when same_op = operand -> E
+                             | new_op -> upcast Expression.MakeUnary(E.NodeType, new_op, E.Type)
                       
-    | Unsupported reason -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + reason + ".")) 
+    | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
