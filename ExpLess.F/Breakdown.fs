@@ -34,9 +34,10 @@ type internal ExpressionKind =
     | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
     | Unary of UnaryOp * Expression                   // unary operator
     | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
+    | Call of obj : Expression * met : MethodInfo * args : Expression list
     | Unsupported of string                           // something else
 
-let inline internal categorize (E : Expression) = 
+let internal categorize (E : Expression) = 
     match E.NodeType with
     
     // Every lambda is wrapped into Quote
@@ -98,11 +99,11 @@ let inline internal categorize (E : Expression) =
         -> let e_unary = E :?> UnaryExpression
            match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
            | null, false, false -> match E.NodeType with
-                                   | ExpressionType.Convert -> Unary (Convert, e_unary.Operand)
-                                   | ExpressionType.TypeAs -> Unary (TypeAs, e_unary.Operand)
+                                   | ExpressionType.Convert     -> Unary (Convert, e_unary.Operand)
+                                   | ExpressionType.TypeAs      -> Unary (TypeAs, e_unary.Operand)
                                    | ExpressionType.ArrayLength -> Unary (ArrayLength, e_unary.Operand)
-                                   | ExpressionType.Negate -> Unary (Negate, e_unary.Operand)
-                                   | ExpressionType.Not ->Unary (Not, e_unary.Operand)
+                                   | ExpressionType.Negate      -> Unary (Negate, e_unary.Operand)
+                                   | ExpressionType.Not         -> Unary (Not, e_unary.Operand)
                                    | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
            | _ -> Unsupported "this kind of unary operator is not implemented yet" 
            
@@ -118,6 +119,17 @@ let inline internal categorize (E : Expression) =
     // 'is' operator
     | ExpressionType.TypeIs -> let e_is = E :?> TypeBinaryExpression
                                TypeIs (e_is.Expression, e_is.TypeOperand)
+
+    // Method call
+    | ExpressionType.Call -> let e_call = E :?> MethodCallExpression
+                             Call (e_call.Object, e_call.Method, List.ofSeq e_call.Arguments)
+    
+
+
+
+
+    // Delegate invocation                         
+    | ExpressionType.Invoke -> Unsupported "Delegate invocation has not been implemented" 
 
     // NewArrayExpression was not useful anyway
     | ExpressionType.NewArrayInit | ExpressionType.NewArrayBounds 

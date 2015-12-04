@@ -63,6 +63,15 @@ let rec public PreEvaluate (E : Expression) =
                                 upcast Expression.Constant(Expression.Lambda(Expression.TypeIs(const_exp, t)).Compile().DynamicInvoke(null), E.Type)
                          | same_exp when same_exp = exp -> E
                          | new_exp -> upcast Expression.TypeIs(new_exp, t)         
-                            
-                      
+    
+    | Call (obj, met, args) -> let HasSideEffects = false
+                               if HasSideEffects then raise(new InvalidOperationException("method '" + met.Name + "' is not proved to be pure"))
+                               else let new_args = List.map PreEvaluate args
+                                    let new_object  = PreEvaluate obj
+                                    let new_callexpr = Expression.Call(new_object, met, new_args)
+                                    
+                                    if (new_object :? ConstantExpression && List.fold (fun all (elem : Expression) -> all && elem :? ConstantExpression) true new_args)
+                                    then upcast Expression.Constant(Expression.Lambda(new_callexpr).Compile().DynamicInvoke(null), E.Type) 
+                                    else upcast new_callexpr                       
+                       
     | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
