@@ -31,6 +31,7 @@ type internal ExpressionKind =
     | ParamAccess of ParameterExpression              // member access expression, parameter
     | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
     | Unary of UnaryOp * Expression                   // unary operator
+    | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
     | Unsupported of string                           // something else
 
 let inline internal categorize (E : Expression) = 
@@ -108,7 +109,9 @@ let inline internal categorize (E : Expression) =
     | ExpressionType.OnesComplement // ~
         -> Unsupported ("unary operator '" + E.NodeType.ToString() + "' is not implemented yet")
 
-    
+    // Ternary operator ? :
+    | ExpressionType.Conditional -> let e_cond = E :?> ConditionalExpression
+                                    Conditional (e_cond.Test, e_cond.IfTrue, e_cond.IfFalse)
 
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"

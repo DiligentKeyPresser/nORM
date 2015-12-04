@@ -47,5 +47,16 @@ let rec public PreEvaluate (E : Expression) =
                              | new_op when (new_op :? ConstantExpression) -> upcast Expression.Constant(Expression.Lambda(Expression.MakeUnary(E.NodeType, new_op, E.Type)).Compile().DynamicInvoke(null), E.Type)
                              | same_op when same_op = operand -> E
                              | new_op -> upcast Expression.MakeUnary(E.NodeType, new_op, E.Type)
+
+    | Conditional (test, iftrue, iffalse) -> 
+            match PreEvaluate test with
+            | const_test when (const_test :? ConstantExpression) -> 
+                    match (const_test :?> ConstantExpression).Value :?> bool with
+                    | true  -> PreEvaluate iftrue
+                    | false -> PreEvaluate iffalse
+            | new_test -> match PreEvaluate iftrue, PreEvaluate iffalse with
+                          | same_true, same_false when new_test = test && same_false = iffalse && same_true = iftrue -> E
+                          | new_true, new_false -> upcast Expression.Condition(new_test, new_true, new_false)
+
                       
     | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
