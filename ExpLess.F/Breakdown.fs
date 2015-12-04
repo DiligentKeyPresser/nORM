@@ -14,7 +14,8 @@ type internal ShiftOp = Left | Right
 type internal CompareOp = LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual | Equal | NotEqual
 type internal MathOp = Add | Subtract | Multiply | Divide | Modulo 
 type internal ShortCircuitLogicOp = AndAlso | OrElse
-type internal UnaryOp = Convert | TypeAs | ArrayLength | Negate | Not 
+type internal CheckedUnaryOp = Negate | Convert
+type internal UnaryOp = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
 
 type internal BinaryExpressionKind =
     | Shift      of ShiftOp   
@@ -96,23 +97,23 @@ let internal categorize (E : Expression) =
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
     // Unary operators
-    | ExpressionType.Convert | ExpressionType.TypeAs | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not
+    | ExpressionType.Convert | ExpressionType.TypeAs | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not | ExpressionType.UnaryPlus 
+    | ExpressionType.OnesComplement | ExpressionType.NegateChecked | ExpressionType.ConvertChecked
         -> let e_unary = E :?> UnaryExpression
            match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
            | null, false, false -> match E.NodeType with
-                                   | ExpressionType.Convert     -> Unary (Convert, e_unary.Operand)
-                                   | ExpressionType.TypeAs      -> Unary (TypeAs, e_unary.Operand)
-                                   | ExpressionType.ArrayLength -> Unary (ArrayLength, e_unary.Operand)
-                                   | ExpressionType.Negate      -> Unary (Negate, e_unary.Operand)
-                                   | ExpressionType.Not         -> Unary (Not, e_unary.Operand)
+                                   | ExpressionType.Convert        -> Unary (Convert, e_unary.Operand)
+                                   | ExpressionType.TypeAs         -> Unary (TypeAs, e_unary.Operand)
+                                   | ExpressionType.ArrayLength    -> Unary (ArrayLength, e_unary.Operand)
+                                   | ExpressionType.Negate         -> Unary (Negate, e_unary.Operand)
+                                   | ExpressionType.Not            -> Unary (Not, e_unary.Operand)
+                                   | ExpressionType.UnaryPlus      -> Unary (UnaryPlus, e_unary.Operand)
+                                   | ExpressionType.OnesComplement -> Unary (OnesComplement, e_unary.Operand)
+                                   | ExpressionType.NegateChecked  -> Unary (Checked CheckedUnaryOp.Negate, e_unary.Operand)
+                                   | ExpressionType.ConvertChecked -> Unary (Checked CheckedUnaryOp.Convert, e_unary.Operand)
                                    | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
            | _ -> Unsupported "this kind of unary operator is not implemented yet" 
            
-    | ExpressionType.UnaryPlus // +...
-    | ExpressionType.NegateChecked | ExpressionType.ConvertChecked
-    | ExpressionType.OnesComplement // ~
-        -> Unsupported ("unary operator '" + E.NodeType.ToString() + "' is not implemented yet")
-
     // Ternary operator ? :
     | ExpressionType.Conditional -> let e_cond = E :?> ConditionalExpression
                                     Conditional (e_cond.Test, e_cond.IfTrue, e_cond.IfFalse)
