@@ -247,6 +247,9 @@ namespace ExpLess
                         return Expression.Constant(Expression.Lambda(res).Compile().DynamicInvoke(null), E.Type);
                     }
 
+                case ExpressionType.Parameter:
+                    return E;
+
                 case ExpressionType.Call:
                     {
                         var e_call = E as MethodCallExpression;
@@ -369,7 +372,6 @@ namespace ExpLess
                     throw new NotImplementedException("An expression tree may not contain an assignment operator");
 
 #warning unable to test next ones
-                case ExpressionType.Parameter:
                 case ExpressionType.Default:
                 case ExpressionType.IsTrue:
                 case ExpressionType.IsFalse:

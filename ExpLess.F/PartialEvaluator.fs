@@ -68,7 +68,7 @@ let rec public PreEvaluate (E : Expression) =
     | Call (obj, met, args) -> let HasSideEffects = not (IsPure met)
                                if HasSideEffects then raise(new InvalidOperationException("method '" + met.Name + "' is not proved to be pure"))
                                else let new_args = List.map PreEvaluate args
-                                    let new_object  = PreEvaluate obj
+                                    let new_object = if obj = null then null else PreEvaluate obj
                                     let new_callexpr = Expression.Call(new_object, met, new_args)
                                     
                                     if (new_object :? ConstantExpression && List.fold (fun all (elem : Expression) -> all && elem :? ConstantExpression) true new_args)
