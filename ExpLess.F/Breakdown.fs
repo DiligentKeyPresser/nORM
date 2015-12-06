@@ -31,7 +31,7 @@ type internal ExpressionKind =
     | Lambda of LambdaExpression                      // lambda expression
     | TypeIs of Expression * Type                     // 'is' operator
     | Binary of left : Expression * right : Expression * BinaryExpressionKind
-    | ParamAccess of ParameterExpression              // member access expression, parameter
+    | ParamAccess of ParameterExpression * MemberInfo // member access expression, parameter
     | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
     | Unary of UnaryOp * Expression                   // unary operator
     | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
@@ -90,9 +90,7 @@ let internal categorize (E : Expression) =
     // Lambda parameter or constant value access
     | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
                                      match e_member.Expression.NodeType with
-                                     | ExpressionType.Parameter -> match e_member.Member with
-                                                                   | null -> ParamAccess (e_member.Expression :?> ParameterExpression)
-                                                                   | _ -> Unsupported "parameter member access is not implemented yet"
+                                     | ExpressionType.Parameter -> ParamAccess (e_member.Expression :?> ParameterExpression, e_member.Member)
                                      | ExpressionType.Constant  -> ConstAccess (e_member.Expression :?> ConstantExpression, e_member.Member)
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
