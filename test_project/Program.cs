@@ -51,7 +51,7 @@ namespace test_project
 
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("server", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
             CopyDatabase.Table1.Update(r => r.Count >= 8, r => new { Count = 9 + r.Count, Name = "testvalue" });
