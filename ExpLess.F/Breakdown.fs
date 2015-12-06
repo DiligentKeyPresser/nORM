@@ -51,6 +51,9 @@ let internal categorize (E : Expression) =
     // Lambda itself
     | ExpressionType.Lambda -> Lambda (E :?> LambdaExpression)
 
+    // direct param access
+    | ExpressionType.Parameter -> ParamAccess (E :?> ParameterExpression, null)
+
     // Binary operators
     | ExpressionType.Coalesce | ExpressionType.ArrayIndex | ExpressionType.LeftShift | ExpressionType.RightShift | ExpressionType.Add| ExpressionType.Subtract |
       ExpressionType.Multiply | ExpressionType.Divide | ExpressionType.Modulo | ExpressionType.LessThan | ExpressionType.LessThanOrEqual | 
@@ -146,7 +149,7 @@ let internal categorize (E : Expression) =
             -> Unsupported "An expression tree may not contain an assignment operator"
 
     // Unable to produce next ones
-    | ExpressionType.Parameter | ExpressionType.Default | ExpressionType.IsTrue | ExpressionType.IsFalse | ExpressionType.Increment
+    | ExpressionType.Default | ExpressionType.IsTrue | ExpressionType.IsFalse | ExpressionType.Increment
     | ExpressionType.Decrement | ExpressionType.DebugInfo | ExpressionType.TypeEqual
             -> Unsupported "unexpected ExpressionType"
 
