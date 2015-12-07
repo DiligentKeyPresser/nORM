@@ -38,7 +38,7 @@ type internal ExpressionKind =
     | Unary       of UnaryOp * Expression                   // unary operator
     | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
     | Call        of obj : Expression * met : MethodInfo * args : Expression list
-    | Constant
+    | Constant    of obj
     | Unsupported of string                                 // something else
 
 let internal categorize (E : Expression) = 
@@ -130,7 +130,7 @@ let internal categorize (E : Expression) =
                              Call (e_call.Object, e_call.Method, List.ofSeq e_call.Arguments)
     
     // Constant
-    | ExpressionType.Constant -> Constant
+    | ExpressionType.Constant -> Constant (E :?> ConstantExpression).Value
 
     // Implement later
     | ExpressionType.Extension | ExpressionType.Unbox | ExpressionType.MemberInit | ExpressionType.ListInit | ExpressionType.Index 
