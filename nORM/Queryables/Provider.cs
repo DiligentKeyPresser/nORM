@@ -1,4 +1,5 @@
 ﻿using MakeSQL;
+using ExpLess;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -227,7 +228,7 @@ namespace nORM
             SelectQuery PredicatedTarget = null;
             if (isPredicatedScalar)
             {
-                var predicate = deMorgan ? PredicateTranslator.InvertPredicate(mc_expr.Arguments[1]) : mc_expr.Arguments[1];
+                var predicate = deMorgan ? ExpressionInverter.Invert(mc_expr.Arguments[1]) : mc_expr.Arguments[1];
                 if (predicate == null) goto failed_to_translate;
 
                 var intermediate = TargetObject.MakeWhere(predicate);

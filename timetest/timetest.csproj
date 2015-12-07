@@ -50,9 +50,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ExpLess\ExpLess.csproj">
-      <Project>{c13ac3f6-2634-48c5-bd1f-abec9f1344e0}</Project>
-      <Name>ExpLess</Name>
+    <ProjectReference Include="..\ExpLess.F\ExpLess.F.fsproj">
+      <Project>{bde11b87-d6fa-4d07-b6f1-edf63ceec204}</Project>
+      <Name>ExpLess.F</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

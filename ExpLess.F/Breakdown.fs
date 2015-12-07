@@ -9,13 +9,15 @@ open System.Reflection
 // Methods and types are not public because this classification is affected by 
 // the current domain (linq provider designing) heavily and tends to be useless outside.
 
-type internal LogicOp = Or | And | ExclusiveOr
-type internal ShiftOp = Left | Right
-type internal CompareOp = LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual | Equal | NotEqual
-type internal MathOp = Add | Subtract | Multiply | Divide | Modulo 
+type internal LogicOp             = Or | And | ExclusiveOr
 type internal ShortCircuitLogicOp = AndAlso | OrElse
-type internal CheckedUnaryOp = Negate | Convert
-type internal UnaryOp = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
+type internal ShiftOp             = Left | Right
+type internal CompareOp           = LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual | Equal | NotEqual
+type internal MathOp              = Add | Subtract | Multiply | Divide | Modulo 
+type internal CheckedUnaryOp      = Negate | Convert
+type internal UnaryOp             = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
+
+type internal ParamAccessMode     = PaItself | PaMember of MemberInfo
 
 type internal BinaryExpressionKind =
     | Shift      of ShiftOp   
@@ -27,17 +29,17 @@ type internal BinaryExpressionKind =
     | ArrayIndex
 
 type internal ExpressionKind =
-    | Quote  of Expression                            // unary expression, ExpressionType.Quote 
-    | Lambda of LambdaExpression                      // lambda expression
-    | TypeIs of Expression * Type                     // 'is' operator
-    | Binary of left : Expression * right : Expression * BinaryExpressionKind
-    | ParamAccess of ParameterExpression * MemberInfo // member access expression, parameter
-    | ConstAccess of ConstantExpression * MemberInfo  // member access expression, constant
-    | Unary of UnaryOp * Expression                   // unary operator
+    | Quote       of Expression                             // unary expression, ExpressionType.Quote 
+    | Lambda      of LambdaExpression                       // lambda expression
+    | TypeIs      of Expression * Type                      // 'is' operator
+    | Binary      of left : Expression * right : Expression * BinaryExpressionKind
+    | ParamAccess of ParameterExpression * ParamAccessMode  // member access expression, parameter
+    | ConstAccess of ConstantExpression * MemberInfo        // member access expression, constant
+    | Unary       of UnaryOp * Expression                   // unary operator
     | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
-    | Call of obj : Expression * met : MethodInfo * args : Expression list
+    | Call        of obj : Expression * met : MethodInfo * args : Expression list
     | Constant
-    | Unsupported of string                           // something else
+    | Unsupported of string                                 // something else
 
 let internal categorize (E : Expression) = 
     match E.NodeType with
@@ -52,7 +54,7 @@ let internal categorize (E : Expression) =
     | ExpressionType.Lambda -> Lambda (E :?> LambdaExpression)
 
     // direct param access
-    | ExpressionType.Parameter -> ParamAccess (E :?> ParameterExpression, null)
+    | ExpressionType.Parameter -> ParamAccess (E :?> ParameterExpression, PaItself)
 
     // Binary operators
     | ExpressionType.Coalesce | ExpressionType.ArrayIndex | ExpressionType.LeftShift | ExpressionType.RightShift | ExpressionType.Add| ExpressionType.Subtract |
@@ -93,7 +95,7 @@ let internal categorize (E : Expression) =
     // Lambda parameter or constant value access
     | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
                                      match e_member.Expression.NodeType with
-                                     | ExpressionType.Parameter -> ParamAccess (e_member.Expression :?> ParameterExpression, e_member.Member)
+                                     | ExpressionType.Parameter -> ParamAccess (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
                                      | ExpressionType.Constant  -> ConstAccess (e_member.Expression :?> ConstantExpression, e_member.Member)
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
