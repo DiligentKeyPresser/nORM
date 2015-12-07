@@ -58,7 +58,6 @@
     <Compile Include="Contracts\Row contracts\RowContractInflater.cs" />
     <Compile Include="Contracts\Table contracts\TableContractInflater.cs" />
     <Compile Include="Queryables\Materialization.cs" />
-    <Compile Include="Reflection\PredicateTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Queryables\Provider.cs" />
     <Compile Include="Queryables\AbstractQueryable.cs" />
