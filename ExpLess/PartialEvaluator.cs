@@ -122,6 +122,7 @@ namespace ExpLess
                                 }
                             }
 
+#warning what if bitwise????
                             if (E.NodeType == ExpressionType.ExclusiveOr)
                             {
                                 if (const_left != null) if ((bool)const_left.Value == false) return new_right;
@@ -246,6 +247,9 @@ namespace ExpLess
                         return Expression.Constant(Expression.Lambda(res).Compile().DynamicInvoke(null), E.Type);
                     }
 
+                case ExpressionType.Parameter:
+                    return E;
+
                 case ExpressionType.Call:
                     {
                         var e_call = E as MethodCallExpression;
@@ -368,7 +372,6 @@ namespace ExpLess
                     throw new NotImplementedException("An expression tree may not contain an assignment operator");
 
 #warning unable to test next ones
-                case ExpressionType.Parameter:
                 case ExpressionType.Default:
                 case ExpressionType.IsTrue:
                 case ExpressionType.IsFalse:
