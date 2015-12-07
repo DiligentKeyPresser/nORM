@@ -47,6 +47,7 @@
     <Compile Include="Breakdown.fs" />
     <Compile Include="Purity.fs" />
     <Compile Include="PartialEvaluator.fs" />
+    <Compile Include="ExpressionInvertor.fs" />
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">12</MinimumVisualStudioVersion>
