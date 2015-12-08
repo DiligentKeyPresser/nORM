@@ -75,6 +75,6 @@ let rec public PreEvaluate (E : Expression) =
                                     then upcast Expression.Constant(Expression.Lambda(new_callexpr).Compile().DynamicInvoke(null), E.Type) 
                                     else upcast new_callexpr  
     
-    | Constant -> E                     
+    | Constant _ -> E                     
                        
     | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
