@@ -1,4 +1,4 @@
-﻿module private ExpLess.Breakdown
+﻿module public ExpLess.Breakdown
 
 open System
 open System.Linq.Expressions
@@ -18,7 +18,7 @@ type internal CompareOp           = LessThan | LessThanOrEqual | GreaterThan | G
 
 type internal MathOp              = Add | Subtract | Multiply | Divide | Modulo 
 
-type internal CheckedUnaryOp      = Negate | Convert
+type internal CheckedUnaryOp      = ChNegate | ChConvert
 type internal UnaryOp             = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
 
 type internal ParamAccessMode     = PaItself | PaMember of MemberInfo
@@ -115,8 +115,8 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
                                    | ExpressionType.Not            -> Unary (Not, discriminate e_unary.Operand)
                                    | ExpressionType.UnaryPlus      -> Unary (UnaryPlus, discriminate e_unary.Operand)
                                    | ExpressionType.OnesComplement -> Unary (OnesComplement, discriminate e_unary.Operand)
-                                   | ExpressionType.NegateChecked  -> Unary (Checked CheckedUnaryOp.Negate, discriminate e_unary.Operand)
-                                   | ExpressionType.ConvertChecked -> Unary (Checked CheckedUnaryOp.Convert, discriminate e_unary.Operand)
+                                   | ExpressionType.NegateChecked  -> Unary (Checked ChNegate, discriminate e_unary.Operand)
+                                   | ExpressionType.ConvertChecked -> Unary (Checked ChConvert, discriminate e_unary.Operand)
                                    | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
            | _ -> Unsupported "this kind of unary operator is not implemented yet" 
            
@@ -170,3 +170,7 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
 
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"
+
+[<Sealed>]
+type public DiscriminatedExpression(E: Expression) =
+    let tree = discriminate E

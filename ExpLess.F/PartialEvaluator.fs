@@ -6,44 +6,59 @@ open System.Reflection
 open Breakdown
 open Purity
 
+// unary operator 'partial evaluation'
+
+let rec internal (~~~~) (tree: ExpressionNode) = 
+    match tree with
+    | Quote op                 -> Quote  (~~~~ op)
+    | Lambda (body, args)      -> Lambda (~~~~ body, args)
+    
+    | Binary (left, op, right) -> 
+            match ~~~~ left, ~~~~ right with
+            | Constant (left, PaItself), Constant(right, PaItself) ->
+                match op with
+                | Shift Left                   -> Constant( downcast left <<< downcast right , PaItself )
+                | Shift Right                  -> Constant( downcast left >>> downcast right , PaItself )
+                | Compare LessThan             -> Constant( downcast left  <  downcast right , PaItself )
+                | Compare LessThanOrEqual      -> Constant( downcast left  <= downcast right , PaItself )
+                | Compare GreaterThan          -> Constant( downcast left  >  downcast right , PaItself )
+                | Compare GreaterThanOrEqual   -> Constant( downcast left  >= downcast right , PaItself )
+                | Compare Equal                -> Constant( downcast left  =  downcast right , PaItself )
+                | Compare NotEqual             -> Constant( downcast left <>  downcast right , PaItself )
+                | Math Add                     -> Constant( downcast left  +  downcast right , PaItself )
+                | Math Subtract                -> Constant( downcast left  -  downcast right , PaItself )
+                | Math Multiply                -> Constant( downcast left  *  downcast right , PaItself )
+                | Math Divide                  -> Constant( downcast left  /  downcast right , PaItself )
+                | Math Modulo                  -> Constant( downcast left  %  downcast right , PaItself )
+                | Logic Or                     -> Constant( downcast left ||| downcast right , PaItself )
+                | Logic And                    -> Constant( downcast left &&& downcast right , PaItself )
+                | Logic ExclusiveOr            -> Constant( downcast left ^^^ downcast right , PaItself )
+                | Logic (ShortCircuit AndAlso) -> Constant( downcast left  && downcast right , PaItself )
+                | Logic (ShortCircuit OrElse)  -> Constant( downcast left  || downcast right , PaItself )
+                | ArrayIndex | Coalesce        -> tree                                            // convert to lambda and execute
+        
+            | Constant (left, PaItself), R  when op = Logic (ShortCircuit AndAlso) -> if left :?> bool  then R else Constant (false, PaItself)
+            | L, Constant (right, PaItself) when op = Logic (ShortCircuit AndAlso) -> if right :?> bool then L else Constant (false, PaItself)
+            | Constant (left, PaItself), R  when op = Logic (ShortCircuit OrElse)  -> if left :?> bool  then Constant (true, PaItself) else R
+            | L, Constant (right, PaItself) when op = Logic (ShortCircuit OrElse)  -> if right :?> bool then Constant (true, PaItself) else L
+            | L, R -> Binary (L, op, R)
+
+    | Param _                  -> tree 
+    | Constant (_, PaItself)   -> tree
+    | Constant (e, PaMember m) -> 
+        match m with  // can actually be only FieldInfo or PropertyInfo
+        | :? FieldInfo    as F -> Constant (F.GetValue(e), PaItself)
+        | :? PropertyInfo as P -> Constant (P.GetValue(e), PaItself)
+
+    | Unary (op, exp) ->
+            match ~~~~ exp with
+            | Constant (new_operand, PaItself) -> // convert to lambda and execute
+                
 
 let rec public PreEvaluate (E : Expression) = 
     match categorize E with
     
-    | Quote op -> match PreEvaluate op with
-                  | same_op when same_op = op -> E
-                  | new_op -> upcast Expression.Quote(new_op)
-    
-    | Lambda L -> match PreEvaluate L.Body with
-                  | samebody when samebody = L.Body -> E
-                  | new_body -> upcast Expression.Lambda(new_body, L.Parameters)
 
-    | Binary (left, right, op) ->
-            let new_left = PreEvaluate left
-            let new_right = PreEvaluate right
-            match new_left :? ConstantExpression, new_right :? ConstantExpression, op with
-            | true, true, _ -> upcast Expression.Constant(Expression.Lambda(Expression.MakeBinary(E.NodeType, new_left, new_right)).Compile().DynamicInvoke(null), E.Type)
-            | true, _, ShortLogic AndAlso -> match (new_left :?> ConstantExpression).Value :?> bool with
-                                             | false -> upcast Expression.Constant(false)
-                                             | true  -> new_right 
-            | _, true, ShortLogic AndAlso -> match (new_right :?> ConstantExpression).Value :?> bool with
-                                             | false -> upcast Expression.Constant(false)
-                                             | true  -> new_left  
-            | true, _, ShortLogic OrElse -> match (new_left :?> ConstantExpression).Value :?> bool with
-                                             | true -> upcast Expression.Constant(true)
-                                             | false  -> new_right 
-            | _, true, ShortLogic OrElse -> match (new_right :?> ConstantExpression).Value :?> bool with
-                                             | true -> upcast Expression.Constant(true)
-                                             | false  -> new_left            
-            | _ when new_left = left && new_right = right -> E
-            | _ -> upcast Expression.MakeBinary(E.NodeType, new_left, new_right)
-             
-    | ParamAccess _ -> E
-
-    | ConstAccess (exp, mem) -> match mem with
-                                | :? FieldInfo -> upcast Expression.Constant((mem :?> FieldInfo).GetValue(exp.Value))
-                                | _ -> raise (new NotImplementedException ("Constant member access is not implemented for this type of member: " + mem.GetType().Name))
-    
     | Unary (op, operand) -> match PreEvaluate operand with
                              | new_op when (new_op :? ConstantExpression) -> upcast Expression.Constant(Expression.Lambda(Expression.MakeUnary(E.NodeType, new_op, E.Type)).Compile().DynamicInvoke(null), E.Type)
                              | same_op when same_op = operand -> E
