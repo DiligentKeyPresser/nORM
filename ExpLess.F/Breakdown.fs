@@ -9,6 +9,9 @@ open System.Reflection
 // Methods and types are not public because this classification is affected by 
 // the current domain (linq provider designing) heavily and tends to be useless outside.
 
+
+// Types of expression tree:
+
 type internal ShortCircuitLogicOp = AndAlso | OrElse
 type internal LogicOp             = Or | And | ExclusiveOr | ShortCircuit of ShortCircuitLogicOp
 
@@ -42,6 +45,9 @@ type internal ExpressionNode =
     | Conditional of test : ExpressionNode * iftrue : ExpressionNode * iffalse : ExpressionNode
     | Call        of obj : ExpressionNode * met : MethodInfo * args : seq<ExpressionNode>
     | Unsupported of string
+
+// Convertion from Expression to internal tree representation
+// Some expressions are impossible to convert into this form
 
 let rec internal discriminate (E : Expression) : ExpressionNode = 
     match E.NodeType with
@@ -171,6 +177,54 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"
 
+// Reversive conversion from internal form into an Expression
+
+let rec internal inflate (tree: ExpressionNode) : Expression =
+    match tree with
+    | Binary (left, op, right) -> 
+        let exp = match op with
+                  | Shift Left                   -> ExpressionType.LeftShift
+                  | Shift Right                  -> ExpressionType.RightShift
+                  | ArrayIndex                   -> ExpressionType.ArrayIndex
+                  | Coalesce                     -> ExpressionType.Coalesce
+                  | Compare LessThan             -> ExpressionType.LessThan
+                  | Compare LessThanOrEqual      -> ExpressionType.LessThanOrEqual
+                  | Compare Equal                -> ExpressionType.Equal
+                  | Compare GreaterThan          -> ExpressionType.GreaterThan
+                  | Compare GreaterThanOrEqual   -> ExpressionType.GreaterThanOrEqual
+                  | Compare NotEqual             -> ExpressionType.NotEqual
+                  | Logic And                    -> ExpressionType.And
+                  | Logic ExclusiveOr            -> ExpressionType.ExclusiveOr
+                  | Logic Or                     -> ExpressionType.Or
+                  | Logic (ShortCircuit AndAlso) -> ExpressionType.AndAlso
+                  | Logic (ShortCircuit OrElse)  -> ExpressionType.OrElse
+                  | Math Add                     -> ExpressionType.Add
+                  | Math Divide                  -> ExpressionType.Divide
+                  | Math Modulo                  -> ExpressionType.Modulo
+                  | Math Multiply                -> ExpressionType.Multiply
+                  | Math Subtract                -> ExpressionType.Subtract
+        upcast Expression.MakeBinary(exp, inflate left, inflate right)
+    
+    | Call (exp, met, args)        -> upcast Expression.Call(inflate exp, met, Seq.map inflate args)
+    | Conditional (test, tr, f)    -> upcast Expression.Condition(inflate test, inflate tr, inflate f)
+    | Constant (obj, PaItself)     -> upcast Expression.Constant(obj) 
+    | Constant (obj, PaMember mem) -> upcast Expression.MakeMemberAccess(Expression.Constant(obj), mem)
+    | Lambda (body, par)           -> upcast Expression.Lambda(inflate body, par)
+    | Param (par, PaItself)        -> upcast par
+    | Param (par, PaMember mem)    -> upcast Expression.MakeMemberAccess(par, mem)
+    | Quote exp                    -> upcast Expression.Quote(inflate exp)
+    | TypeIs (exp, typ)            -> upcast Expression.TypeIs(inflate exp, typ)
+  //  | Unary (op, exp)              -> 
+  //      let operation = match op with
+  //                      | Convert     -> Expression.Convert()
+  //      upcast Expression.MakeUnary(operation, inflate exp, ) 
+ 
+// Public object to hold an internal representation of expression trees
+
 [<Sealed>]
-type public DiscriminatedExpression(E: Expression) =
-    let tree = discriminate E
+type public DiscriminatedExpression(exp: obj) =
+    let tree = match exp with
+               | :? Expression as e      -> discriminate e
+               | :? ExpressionNode as n  -> n
+               | _                       -> raise ( new ArgumentException("Cannot convert '" + exp.GetType().Name + "' into an expression.")) 
+    member this.Build = inflate tree 
