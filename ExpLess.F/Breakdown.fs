@@ -21,10 +21,12 @@ type internal CompareOp           = LessThan | LessThanOrEqual | GreaterThan | G
 
 type internal MathOp              = Add | Subtract | Multiply | Divide | Modulo 
 
-type internal CheckedUnaryOp      = ChNegate | ChConvert
-type internal UnaryOp             = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
+type internal CheckedUnaryOp      = ChNegate
+type internal UnaryOp             = ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
 
 type internal ParamAccessMode     = PaItself | PaMember of MemberInfo
+
+type internal ConversionMode      = CConvert | CConvertChecked | CTypeAs
 
 type internal BinaryNode =
     | Shift      of ShiftOp   
@@ -44,6 +46,7 @@ type internal ExpressionNode =
     | Unary       of UnaryOp * ExpressionNode
     | Conditional of test : ExpressionNode * iftrue : ExpressionNode * iffalse : ExpressionNode
     | Call        of obj : ExpressionNode * met : MethodInfo * args : seq<ExpressionNode>
+    | Convert     of Type * ExpressionNode * ConversionMode
     | Unsupported of string
 
 // Convertion from Expression to internal tree representation
@@ -108,21 +111,26 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
                                      | ExpressionType.Constant  -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
+    // Conversion operations
+    | ExpressionType.Convert        -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CConvert)
+    | ExpressionType.ConvertChecked -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CConvertChecked)
+    | ExpressionType.TypeAs         -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CTypeAs)
+
     // Unary operators
-    | ExpressionType.Convert | ExpressionType.TypeAs | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not | ExpressionType.UnaryPlus 
-    | ExpressionType.OnesComplement | ExpressionType.NegateChecked | ExpressionType.ConvertChecked
+    | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not | ExpressionType.UnaryPlus 
+    | ExpressionType.OnesComplement | ExpressionType.NegateChecked 
         -> let e_unary = E :?> UnaryExpression
            match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
            | null, false, false -> match E.NodeType with
-                                   | ExpressionType.Convert        -> Unary (Convert, discriminate e_unary.Operand)
-                                   | ExpressionType.TypeAs         -> Unary (TypeAs, discriminate e_unary.Operand)
                                    | ExpressionType.ArrayLength    -> Unary (ArrayLength, discriminate e_unary.Operand)
                                    | ExpressionType.Negate         -> Unary (Negate, discriminate e_unary.Operand)
                                    | ExpressionType.Not            -> Unary (Not, discriminate e_unary.Operand)
                                    | ExpressionType.UnaryPlus      -> Unary (UnaryPlus, discriminate e_unary.Operand)
                                    | ExpressionType.OnesComplement -> Unary (OnesComplement, discriminate e_unary.Operand)
                                    | ExpressionType.NegateChecked  -> Unary (Checked ChNegate, discriminate e_unary.Operand)
-                                   | ExpressionType.ConvertChecked -> Unary (Checked ChConvert, discriminate e_unary.Operand)
                                    | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
            | _ -> Unsupported "this kind of unary operator is not implemented yet" 
            
@@ -205,6 +213,21 @@ let rec internal inflate (tree: ExpressionNode) : Expression =
                   | Math Subtract                -> ExpressionType.Subtract
         upcast Expression.MakeBinary(exp, inflate left, inflate right)
     
+    | Convert (typ, op, mode) -> 
+            match mode with
+            | CConvert        -> upcast Expression.Convert(inflate op, typ)
+            | CConvertChecked -> upcast Expression.ConvertChecked(inflate op, typ)
+            | CTypeAs         -> upcast Expression.TypeAs(inflate op, typ)
+    
+    | Unary (op, exp) -> 
+            match op with
+            | ArrayLength      -> upcast Expression.ArrayLength(inflate exp)
+            | Negate           -> upcast Expression.Negate(inflate exp)
+            | Not              -> upcast Expression.Not(inflate exp)
+            | UnaryPlus        -> upcast Expression.UnaryPlus(inflate exp)
+            | OnesComplement   -> upcast Expression.OnesComplement(inflate exp)
+            | Checked ChNegate -> upcast Expression.NegateChecked(inflate exp)
+            
     | Call (exp, met, args)        -> upcast Expression.Call(inflate exp, met, Seq.map inflate args)
     | Conditional (test, tr, f)    -> upcast Expression.Condition(inflate test, inflate tr, inflate f)
     | Constant (obj, PaItself)     -> upcast Expression.Constant(obj) 
@@ -214,10 +237,7 @@ let rec internal inflate (tree: ExpressionNode) : Expression =
     | Param (par, PaMember mem)    -> upcast Expression.MakeMemberAccess(par, mem)
     | Quote exp                    -> upcast Expression.Quote(inflate exp)
     | TypeIs (exp, typ)            -> upcast Expression.TypeIs(inflate exp, typ)
-  //  | Unary (op, exp)              -> 
-  //      let operation = match op with
-  //                      | Convert     -> Expression.Convert()
-  //      upcast Expression.MakeUnary(operation, inflate exp, ) 
+    | Unsupported reason  -> raise(new NotImplementedException ( "inflate: not supported. Hint: " + reason + ".")) 
  
 // Public object to hold an internal representation of expression trees
 
