@@ -76,29 +76,23 @@ let rec internal (~~~~) (tree: ExpressionNode) =
                                  else Call (new_object, met, new_args) 
                  | _          -> Call (new_object, met, new_args)
                  
-                 
+    | Conditional (test, iftrue, iffalse) ->
+            match ~~~~ test, ~~~~ iftrue, ~~~~ iffalse with
+            | Constant (T, PaItself), ift, iff -> if T :?> bool then ift else iff
+            | t, ift, iff -> Conditional(t, ift, iff)
                   
-  
-    | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
-
-
-let rec public PreEvaluate (E : Expression) = 
-    match categorize E with
-    
-
-    | Conditional (test, iftrue, iffalse) -> 
-            match PreEvaluate test with
-            | const_test when (const_test :? ConstantExpression) -> 
-                    match (const_test :?> ConstantExpression).Value :?> bool with
-                    | true  -> PreEvaluate iftrue
-                    | false -> PreEvaluate iffalse
-            | new_test -> match PreEvaluate iftrue, PreEvaluate iffalse with
-                          | same_true, same_false when new_test = test && same_false = iffalse && same_true = iftrue -> E
-                          | new_true, new_false -> upcast Expression.Condition(new_test, new_true, new_false)
-
-    | TypeIs (exp, t) -> match PreEvaluate exp with
-                         | const_exp when (const_exp :? ConstantExpression) ->
-                                upcast Expression.Constant(Expression.Lambda(Expression.TypeIs(const_exp, t)).Compile().DynamicInvoke(null), E.Type)
-                         | same_exp when same_exp = exp -> E
-                         | new_exp -> upcast Expression.TypeIs(new_exp, t)         
-    
+    | Convert (typ, exp, mode) -> 
+            match ~~~~ exp with
+            | Constant (ne, PaItself) -> 
+                match mode with 
+                | CConvert        -> Constant (Expression.Lambda(Expression.Convert(Expression.Constant(ne), typ)).Compile().DynamicInvoke(null), PaItself) 
+                | CConvertChecked -> Constant (Expression.Lambda(Expression.ConvertChecked(Expression.Constant(ne), typ)).Compile().DynamicInvoke(null), PaItself) 
+                | CTypeAs         -> Constant (Expression.Lambda(Expression.TypeAs(Expression.Constant(ne), typ)).Compile().DynamicInvoke(null), PaItself) 
+            | ne -> Convert (typ, ne, mode)
+                     
+     | TypeIs (exp, t) -> 
+            match ~~~~ exp with
+            | Constant (ce, PaItself) -> Constant (Expression.Lambda(Expression.TypeIs(Expression.Constant(ce), t)).Compile().DynamicInvoke(null), PaItself) 
+            | new_exp -> TypeIs (new_exp, t)            
+      
+    | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + tree.ToString() + "' are not supported. Hint: " + hint + ".")) 
