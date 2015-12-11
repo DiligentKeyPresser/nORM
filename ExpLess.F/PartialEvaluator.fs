@@ -35,7 +35,8 @@ let rec internal (~~~~) (tree: ExpressionNode) =
                 | Logic ExclusiveOr            -> Constant( downcast left ^^^ downcast right , PaItself )
                 | Logic (ShortCircuit AndAlso) -> Constant( downcast left  && downcast right , PaItself )
                 | Logic (ShortCircuit OrElse)  -> Constant( downcast left  || downcast right , PaItself )
-                | ArrayIndex | Coalesce        -> tree                                            // convert to lambda and execute
+                | ArrayIndex                   -> Constant( Expression.Lambda(Expression.ArrayIndex(Expression.Constant(left), Expression.Constant(right))).Compile().DynamicInvoke(null) , PaItself )
+                | Coalesce                     -> Constant( Expression.Lambda(Expression.Coalesce(Expression.Constant(left), Expression.Constant(right))).Compile().DynamicInvoke(null) , PaItself )                                         
         
             | Constant (left, PaItself), R  when op = Logic (ShortCircuit AndAlso) -> if left :?> bool  then R else Constant (false, PaItself)
             | L, Constant (right, PaItself) when op = Logic (ShortCircuit AndAlso) -> if right :?> bool then L else Constant (false, PaItself)
@@ -46,23 +47,44 @@ let rec internal (~~~~) (tree: ExpressionNode) =
     | Param _                  -> tree 
     | Constant (_, PaItself)   -> tree
     | Constant (e, PaMember m) -> 
-        match m with  // can actually be only FieldInfo or PropertyInfo
-        | :? FieldInfo    as F -> Constant (F.GetValue(e), PaItself)
-        | :? PropertyInfo as P -> Constant (P.GetValue(e), PaItself)
+            match m with  // can actually be only FieldInfo or PropertyInfo
+            | :? FieldInfo    as F -> Constant (F.GetValue(e), PaItself)
+            | :? PropertyInfo as P -> Constant (P.GetValue(e), PaItself)
 
     | Unary (op, exp) ->
             match ~~~~ exp with
-            | Constant (new_operand, PaItself) -> // convert to lambda and execute
-                
+            | Constant (new_operand, PaItself) -> 
+                match op with
+                | ArrayLength      -> Constant ( Expression.Lambda(Expression.ArrayLength(Expression.Constant(new_operand))).Compile().DynamicInvoke(null) , PaItself)
+                | Checked ChNegate -> Constant ( Expression.Lambda(Expression.NegateChecked(Expression.Constant(new_operand))).Compile().DynamicInvoke(null) , PaItself)
+                | Negate           -> Constant ( - (downcast new_operand), PaItself)
+                | Not              -> Constant ( Expression.Lambda(Expression.Not(Expression.Constant(new_operand))).Compile().DynamicInvoke(null) , PaItself)
+                | OnesComplement   -> Constant ( ~~~ (downcast new_operand), PaItself)
+                | UnaryPlus        -> Constant ( + (downcast new_operand), PaItself)
+            | A -> Unary (op, A)
+
+    | Call (o, met, a) ->
+            let HasSideEffects = not (IsPure met) 
+            if HasSideEffects then raise(new InvalidOperationException("method '" + met.Name + "' is not proved to be pure")) 
+            else let new_args = Seq.map (~~~~) a
+                 let new_object = match o with
+                                  | Constant (null, PaItself) -> o
+                                  | _ -> ~~~~o
+                 match new_object with
+                 | Constant _ -> let args_are_const = Seq.fold (fun all (elem : ExpressionNode) -> all && match elem with | Constant _ -> true | _ -> false ) true new_args
+                                 if args_are_const then Constant (Expression.Lambda(Expression.Call(inflate new_object, met, Seq.map inflate new_args)).Compile().DynamicInvoke(null), PaItself) 
+                                 else Call (new_object, met, new_args) 
+                 | _          -> Call (new_object, met, new_args)
+                 
+                 
+                  
+  
+    | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
+
 
 let rec public PreEvaluate (E : Expression) = 
     match categorize E with
     
-
-    | Unary (op, operand) -> match PreEvaluate operand with
-                             | new_op when (new_op :? ConstantExpression) -> upcast Expression.Constant(Expression.Lambda(Expression.MakeUnary(E.NodeType, new_op, E.Type)).Compile().DynamicInvoke(null), E.Type)
-                             | same_op when same_op = operand -> E
-                             | new_op -> upcast Expression.MakeUnary(E.NodeType, new_op, E.Type)
 
     | Conditional (test, iftrue, iffalse) -> 
             match PreEvaluate test with
@@ -80,16 +102,3 @@ let rec public PreEvaluate (E : Expression) =
                          | same_exp when same_exp = exp -> E
                          | new_exp -> upcast Expression.TypeIs(new_exp, t)         
     
-    | Call (obj, met, args) -> let HasSideEffects = not (IsPure met)
-                               if HasSideEffects then raise(new InvalidOperationException("method '" + met.Name + "' is not proved to be pure"))
-                               else let new_args = List.map PreEvaluate args
-                                    let new_object = if obj = null then null else PreEvaluate obj
-                                    let new_callexpr = Expression.Call(new_object, met, new_args)
-                                    
-                                    if (new_object :? ConstantExpression && List.fold (fun all (elem : Expression) -> all && elem :? ConstantExpression) true new_args)
-                                    then upcast Expression.Constant(Expression.Lambda(new_callexpr).Compile().DynamicInvoke(null), E.Type) 
-                                    else upcast new_callexpr  
-    
-    | Constant _ -> E                     
-                       
-    | Unsupported hint -> raise(new NotImplementedException ( "ExpLess::PreEvaluate - expressions like '" + E.ToString() + "' are not supported. Hint: " + hint + ".")) 
