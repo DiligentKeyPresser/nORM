@@ -1,8 +1,8 @@
-﻿using MakeSQL;
+﻿using ExpLess;
+using MakeSQL;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
-using static ExpLess.PartialEvaluator;
 
 namespace nORM {
     /// <summary>
@@ -26,7 +26,7 @@ namespace nORM {
 
         internal RowSource<RowContract> MakeWhere(Expression Condition)
         {
-            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(Condition), null, member =>
+            var sql_predicate = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(Condition).Minimized.Expression, null, member =>
             {
 #if DEBUG
                 if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");

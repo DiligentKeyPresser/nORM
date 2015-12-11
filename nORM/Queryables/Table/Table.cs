@@ -1,4 +1,5 @@
-﻿using MakeSQL;
+﻿using ExpLess;
+using MakeSQL;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -49,7 +50,7 @@ namespace nORM
 
         public int Delete(Expression<Func<RowContract, bool>> predicate)
         {
-            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(predicate), null, member =>
+            var sql_predicate = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(predicate).Minimized.Expression, null, member =>
             {
 #if DEBUG
                 if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
@@ -121,7 +122,7 @@ namespace nORM
         {
             // predicate 
 
-            var sql_predicate = Context.QueryContext.BuildPredicate(PreEvaluate(predicate), null, member =>
+            var sql_predicate = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(predicate).Minimized.Expression, null, member =>
             {
 #if DEBUG
                 if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
@@ -158,7 +159,7 @@ namespace nORM
                 if (!Columns.Any(c => c.ContractName == f.Item1))
                     throw new ContractMismatchException($"Field '{f.Item1}' does not exist in the contract ('{nameof(RowContract)}').");
 
-                var sql_setter = Context.QueryContext.BuildPredicate(PreEvaluate(f.Item2), input, member =>
+                var sql_setter = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(f.Item2).Minimized.Expression, input, member =>
                 {
 #if DEBUG
                     if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
