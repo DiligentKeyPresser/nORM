@@ -1,4 +1,4 @@
-﻿module private ExpLess.Breakdown
+﻿module public ExpLess.Breakdown
 
 open System
 open System.Linq.Expressions
@@ -9,52 +9,64 @@ open System.Reflection
 // Methods and types are not public because this classification is affected by 
 // the current domain (linq provider designing) heavily and tends to be useless outside.
 
-type internal LogicOp             = Or | And | ExclusiveOr
+
+// Types of expression tree:
+
 type internal ShortCircuitLogicOp = AndAlso | OrElse
+type internal LogicOp             = Or | And | ExclusiveOr | ShortCircuit of ShortCircuitLogicOp
+
 type internal ShiftOp             = Left | Right
+
 type internal CompareOp           = LessThan | LessThanOrEqual | GreaterThan | GreaterThanOrEqual | Equal | NotEqual
+
 type internal MathOp              = Add | Subtract | Multiply | Divide | Modulo 
-type internal CheckedUnaryOp      = Negate | Convert
-type internal UnaryOp             = Convert | TypeAs | ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
+
+type internal CheckedUnaryOp      = ChNegate
+type internal UnaryOp             = ArrayLength | Negate | Not | UnaryPlus | OnesComplement | Checked of CheckedUnaryOp
 
 type internal ParamAccessMode     = PaItself | PaMember of MemberInfo
 
-type internal BinaryExpressionKind =
+type internal ConversionMode      = CConvert | CConvertChecked | CTypeAs
+
+type internal BinaryNode =
     | Shift      of ShiftOp   
     | Compare    of CompareOp 
     | Math       of MathOp
     | Logic      of LogicOp
-    | ShortLogic of ShortCircuitLogicOp
     | Coalesce
     | ArrayIndex
 
-type internal ExpressionKind =
-    | Quote       of Expression                             // unary expression, ExpressionType.Quote 
-    | Lambda      of LambdaExpression                       // lambda expression
-    | TypeIs      of Expression * Type                      // 'is' operator
-    | Binary      of left : Expression * right : Expression * BinaryExpressionKind
-    | ParamAccess of ParameterExpression * ParamAccessMode  // member access expression, parameter
-    | ConstAccess of ConstantExpression * MemberInfo        // member access expression, constant
-    | Unary       of UnaryOp * Expression                   // unary operator
-    | Conditional of test : Expression * iftrue : Expression * iffalse : Expression
-    | Call        of obj : Expression * met : MethodInfo * args : Expression list
-    | Constant    of obj
-    | Unsupported of string                                 // something else
+type internal ExpressionNode =
+    | Constant    of obj * ParamAccessMode
+    | Param       of ParameterExpression * ParamAccessMode
+    | Quote       of ExpressionNode 
+    | Lambda      of ExpressionNode * seq<ParameterExpression>
+    | TypeIs      of ExpressionNode * Type
+    | Binary      of ExpressionNode * BinaryNode * ExpressionNode
+    | Unary       of UnaryOp * ExpressionNode
+    | Conditional of test : ExpressionNode * iftrue : ExpressionNode * iffalse : ExpressionNode
+    | Call        of obj : ExpressionNode * met : MethodInfo * args : seq<ExpressionNode>
+    | Convert     of Type * ExpressionNode * ConversionMode
+    | Unsupported of string
 
-let internal categorize (E : Expression) = 
+// Convertion from Expression to internal tree representation
+// Some expressions are impossible to convert into this form
+
+let rec internal discriminate (E : Expression) : ExpressionNode = 
     match E.NodeType with
     
     // Every lambda is wrapped into Quote
     | ExpressionType.Quote -> let e_unary = E :?> UnaryExpression
                               match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
-                              | null, false, false -> Quote e_unary.Operand
+                              | null, false, false -> discriminate e_unary.Operand |> Quote
                               | _                  -> Unsupported "invalid quote"
     
     // Lambda itself
-    | ExpressionType.Lambda -> Lambda (E :?> LambdaExpression)
+    | ExpressionType.Lambda -> let e_lambda = E :?> LambdaExpression
+                               Lambda (discriminate e_lambda.Body, e_lambda.Parameters)
 
     // direct param access
-    | ExpressionType.Parameter -> ParamAccess (E :?> ParameterExpression, PaItself)
+    | ExpressionType.Parameter -> Param (E :?> ParameterExpression, PaItself)
 
     // Binary operators
     | ExpressionType.Coalesce | ExpressionType.ArrayIndex | ExpressionType.LeftShift | ExpressionType.RightShift | ExpressionType.Add| ExpressionType.Subtract |
@@ -78,15 +90,15 @@ let internal categorize (E : Expression) =
                           | ExpressionType.Multiply           -> Math Multiply
                           | ExpressionType.Divide             -> Math Divide
                           | ExpressionType.Modulo             -> Math Modulo
-                          | ExpressionType.AndAlso            -> ShortLogic AndAlso
-                          | ExpressionType.OrElse             -> ShortLogic OrElse
+                          | ExpressionType.AndAlso            -> Logic (ShortCircuit AndAlso)
+                          | ExpressionType.OrElse             -> Logic (ShortCircuit OrElse)
                           | ExpressionType.Or                 -> Logic Or
                           | ExpressionType.And                -> Logic And
                           | ExpressionType.ExclusiveOr        -> Logic ExclusiveOr
                           | _ -> raise (new System.NotImplementedException("Someone forgot about " + e_binary.NodeType.ToString() + " binary operator."))
             
             match e_binary.Conversion, e_binary.Method, e_binary.IsLifted, e_binary.IsLiftedToNull with
-            | null, null, false, false -> Binary (e_binary.Left, e_binary.Right, op_kind)
+            | null, null, false, false -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
             | _ -> Unsupported "this kind of binary operator is not implemented yet" 
       
     | ExpressionType.Power | ExpressionType.AddChecked | ExpressionType.MultiplyChecked | ExpressionType.SubtractChecked ->
@@ -95,42 +107,47 @@ let internal categorize (E : Expression) =
     // Lambda parameter or constant value access
     | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
                                      match e_member.Expression.NodeType with
-                                     | ExpressionType.Parameter -> ParamAccess (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
-                                     | ExpressionType.Constant  -> ConstAccess (e_member.Expression :?> ConstantExpression, e_member.Member)
+                                     | ExpressionType.Parameter -> Param (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
+                                     | ExpressionType.Constant  -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
+    // Conversion operations
+    | ExpressionType.Convert        -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CConvert)
+    | ExpressionType.ConvertChecked -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CConvertChecked)
+    | ExpressionType.TypeAs         -> let e_unary = E :?> UnaryExpression
+                                       Convert (e_unary.Type, discriminate e_unary.Operand, CTypeAs)
+
     // Unary operators
-    | ExpressionType.Convert | ExpressionType.TypeAs | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not | ExpressionType.UnaryPlus 
-    | ExpressionType.OnesComplement | ExpressionType.NegateChecked | ExpressionType.ConvertChecked
+    | ExpressionType.ArrayLength | ExpressionType.Negate | ExpressionType.Not | ExpressionType.UnaryPlus 
+    | ExpressionType.OnesComplement | ExpressionType.NegateChecked 
         -> let e_unary = E :?> UnaryExpression
            match e_unary.Method, e_unary.IsLifted, e_unary.IsLiftedToNull with
            | null, false, false -> match E.NodeType with
-                                   | ExpressionType.Convert        -> Unary (Convert, e_unary.Operand)
-                                   | ExpressionType.TypeAs         -> Unary (TypeAs, e_unary.Operand)
-                                   | ExpressionType.ArrayLength    -> Unary (ArrayLength, e_unary.Operand)
-                                   | ExpressionType.Negate         -> Unary (Negate, e_unary.Operand)
-                                   | ExpressionType.Not            -> Unary (Not, e_unary.Operand)
-                                   | ExpressionType.UnaryPlus      -> Unary (UnaryPlus, e_unary.Operand)
-                                   | ExpressionType.OnesComplement -> Unary (OnesComplement, e_unary.Operand)
-                                   | ExpressionType.NegateChecked  -> Unary (Checked CheckedUnaryOp.Negate, e_unary.Operand)
-                                   | ExpressionType.ConvertChecked -> Unary (Checked CheckedUnaryOp.Convert, e_unary.Operand)
+                                   | ExpressionType.ArrayLength    -> Unary (ArrayLength, discriminate e_unary.Operand)
+                                   | ExpressionType.Negate         -> Unary (Negate, discriminate e_unary.Operand)
+                                   | ExpressionType.Not            -> Unary (Not, discriminate e_unary.Operand)
+                                   | ExpressionType.UnaryPlus      -> Unary (UnaryPlus, discriminate e_unary.Operand)
+                                   | ExpressionType.OnesComplement -> Unary (OnesComplement, discriminate e_unary.Operand)
+                                   | ExpressionType.NegateChecked  -> Unary (Checked ChNegate, discriminate e_unary.Operand)
                                    | _ -> raise (new System.NotImplementedException("Someone forgot about " + E.NodeType.ToString() + " unary operator."))
            | _ -> Unsupported "this kind of unary operator is not implemented yet" 
            
     // Ternary operator ? :
     | ExpressionType.Conditional -> let e_cond = E :?> ConditionalExpression
-                                    Conditional (e_cond.Test, e_cond.IfTrue, e_cond.IfFalse)
+                                    Conditional (discriminate e_cond.Test, discriminate e_cond.IfTrue, discriminate e_cond.IfFalse)
 
     // 'is' operator
     | ExpressionType.TypeIs -> let e_is = E :?> TypeBinaryExpression
-                               TypeIs (e_is.Expression, e_is.TypeOperand)
+                               TypeIs (discriminate e_is.Expression, e_is.TypeOperand)
 
     // Method call
     | ExpressionType.Call -> let e_call = E :?> MethodCallExpression
-                             Call (e_call.Object, e_call.Method, List.ofSeq e_call.Arguments)
+                             Call (discriminate e_call.Object, e_call.Method, [| for a in e_call.Arguments -> discriminate a |])
     
     // Constant
-    | ExpressionType.Constant -> Constant (E :?> ConstantExpression).Value
+    | ExpressionType.Constant -> Constant ((E :?> ConstantExpression).Value, PaItself)
 
     // Implement later
     | ExpressionType.Extension | ExpressionType.Unbox | ExpressionType.MemberInit | ExpressionType.ListInit | ExpressionType.Index 
@@ -167,3 +184,57 @@ let internal categorize (E : Expression) =
 
     // Something new
     | _ -> Unsupported "unexpected ExpressionType"
+
+// Reversive conversion from internal form into an Expression
+
+let rec internal inflate (tree: ExpressionNode) : Expression =
+    match tree with
+    | Binary (left, op, right) -> 
+        let exp = match op with
+                  | Shift Left                   -> ExpressionType.LeftShift
+                  | Shift Right                  -> ExpressionType.RightShift
+                  | ArrayIndex                   -> ExpressionType.ArrayIndex
+                  | Coalesce                     -> ExpressionType.Coalesce
+                  | Compare LessThan             -> ExpressionType.LessThan
+                  | Compare LessThanOrEqual      -> ExpressionType.LessThanOrEqual
+                  | Compare Equal                -> ExpressionType.Equal
+                  | Compare GreaterThan          -> ExpressionType.GreaterThan
+                  | Compare GreaterThanOrEqual   -> ExpressionType.GreaterThanOrEqual
+                  | Compare NotEqual             -> ExpressionType.NotEqual
+                  | Logic And                    -> ExpressionType.And
+                  | Logic ExclusiveOr            -> ExpressionType.ExclusiveOr
+                  | Logic Or                     -> ExpressionType.Or
+                  | Logic (ShortCircuit AndAlso) -> ExpressionType.AndAlso
+                  | Logic (ShortCircuit OrElse)  -> ExpressionType.OrElse
+                  | Math Add                     -> ExpressionType.Add
+                  | Math Divide                  -> ExpressionType.Divide
+                  | Math Modulo                  -> ExpressionType.Modulo
+                  | Math Multiply                -> ExpressionType.Multiply
+                  | Math Subtract                -> ExpressionType.Subtract
+        upcast Expression.MakeBinary(exp, inflate left, inflate right)
+    
+    | Convert (typ, op, mode) -> 
+            match mode with
+            | CConvert        -> upcast Expression.Convert(inflate op, typ)
+            | CConvertChecked -> upcast Expression.ConvertChecked(inflate op, typ)
+            | CTypeAs         -> upcast Expression.TypeAs(inflate op, typ)
+    
+    | Unary (op, exp) -> 
+            match op with
+            | ArrayLength      -> upcast Expression.ArrayLength(inflate exp)
+            | Negate           -> upcast Expression.Negate(inflate exp)
+            | Not              -> upcast Expression.Not(inflate exp)
+            | UnaryPlus        -> upcast Expression.UnaryPlus(inflate exp)
+            | OnesComplement   -> upcast Expression.OnesComplement(inflate exp)
+            | Checked ChNegate -> upcast Expression.NegateChecked(inflate exp)
+            
+    | Call (exp, met, args)        -> upcast Expression.Call(inflate exp, met, Seq.map inflate args)
+    | Conditional (test, tr, f)    -> upcast Expression.Condition(inflate test, inflate tr, inflate f)
+    | Constant (obj, PaItself)     -> upcast Expression.Constant(obj) 
+    | Constant (obj, PaMember mem) -> upcast Expression.MakeMemberAccess(Expression.Constant(obj), mem)
+    | Lambda (body, par)           -> upcast Expression.Lambda(inflate body, par)
+    | Param (par, PaItself)        -> upcast par
+    | Param (par, PaMember mem)    -> upcast Expression.MakeMemberAccess(par, mem)
+    | Quote exp                    -> upcast Expression.Quote(inflate exp)
+    | TypeIs (exp, typ)            -> upcast Expression.TypeIs(inflate exp, typ)
+    | Unsupported reason  -> raise(new NotImplementedException ( "inflate: not supported. Hint: " + reason + ".")) 
