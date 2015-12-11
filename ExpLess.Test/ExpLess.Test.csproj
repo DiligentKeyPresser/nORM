@@ -50,10 +50,8 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="BinaryOperations.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SelfTesting.cs" />
-    <Compile Include="UnaryOperations.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExpLess.F\ExpLess.F.fsproj">
