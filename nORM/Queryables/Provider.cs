@@ -228,7 +228,7 @@ namespace nORM
             SelectQuery PredicatedTarget = null;
             if (isPredicatedScalar)
             {
-                var predicate = deMorgan ? ExpressionInverter.Invert(mc_expr.Arguments[1]) : mc_expr.Arguments[1];
+                var predicate = deMorgan ? new DiscriminatedExpression(mc_expr.Arguments[1]).Inverse.Expression : mc_expr.Arguments[1];
                 if (predicate == null) goto failed_to_translate;
 
                 var intermediate = TargetObject.MakeWhere(predicate);
