@@ -238,13 +238,3 @@ let rec internal inflate (tree: ExpressionNode) : Expression =
     | Quote exp                    -> upcast Expression.Quote(inflate exp)
     | TypeIs (exp, typ)            -> upcast Expression.TypeIs(inflate exp, typ)
     | Unsupported reason  -> raise(new NotImplementedException ( "inflate: not supported. Hint: " + reason + ".")) 
- 
-// Public object to hold an internal representation of expression trees
-
-[<Sealed>]
-type public DiscriminatedExpression(exp: obj) =
-    let tree = match exp with
-               | :? Expression as e      -> discriminate e
-               | :? ExpressionNode as n  -> n
-               | _                       -> raise ( new ArgumentException("Cannot convert '" + exp.GetType().Name + "' into an expression.")) 
-    member this.Build = inflate tree 
