@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
+using System.Threading;
 
 namespace nORM
 {
@@ -26,8 +28,7 @@ namespace nORM
         /// Establish a new connection, execute the query and refurn the full result set.
         /// Each result row will be transformed into a TElement by the given `Projection`.
         /// </summary>
-#warning IEnumerator would be better
-        internal abstract IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection);
+        internal abstract IEnumerator<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection);
 
         /// <summary>
         /// Return Query Factory apropriate for the database engine.
@@ -74,7 +75,7 @@ namespace nORM
     public abstract class DBNetworkConnector : NetworkConnector
     {
         protected DBNetworkConnector(string host, string database, string connection_string)
-            : base (host, database, connection_string)
+            : base(host, database, connection_string)
         { }
 
         protected abstract IDbConnection MakeConnection();
@@ -100,10 +101,23 @@ namespace nORM
             }
         }
 
-        internal override IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
+#if DEBUG
+        private class DebugDisposeNotifier : IDisposable
+        {
+            private static int N = 0;
+            private readonly int Current = Interlocked.Increment(ref N);
+            public DebugDisposeNotifier() { Debug.WriteLine($"connection {Current} has been created."); }
+            public void Dispose() => Debug.WriteLine($"connection {Current} has been disposed");
+        }
+#endif
+
+        internal override IEnumerator<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             using (var connection = MakeConnection())
             using (var command = MakeCommand(Query, connection))
+#if DEBUG
+            using (new DebugDisposeNotifier())
+#endif
             {
                 connection.Open();
                 using (var reader = command.ExecuteReader())
@@ -111,15 +125,11 @@ namespace nORM
                     int ColumnCount = reader.FieldCount;
                     var row = new object[ColumnCount];
 
-                    // список нужен, иначе будет возвращаться итератор по уничтоженному IDisposable
-                    var result = new List<TElement>();
-#warning нельзя ли заранее узнать размер?
                     while (reader.Read())
                     {
                         reader.GetValues(row);
-                        result.Add(Projection(row));
+                        yield return Projection(row);
                     }
-                    return result;
                 }
             }
         }

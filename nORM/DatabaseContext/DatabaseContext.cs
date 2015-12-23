@@ -47,7 +47,7 @@ namespace nORM
         /// Delegates query execution to the underlying connector.
         /// Each result row will be transformed into a TElement by the given `Projection`.
         /// </summary>
-        internal IEnumerable<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
+        internal IEnumerator<TElement> ExecuteProjection<TElement>(string Query, Func<object[], TElement> Projection)
         {
             if (BeforeCommandExecute != null) BeforeCommandExecute(Query);
             return connection.ExecuteProjection(Query, Projection);
@@ -57,9 +57,8 @@ namespace nORM
         /// Delegates query execution to the underlying connector.
         /// Each result row will be transformed into a row contract instance.
         /// </summary>
-#warning IEnumerator would be better
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal IEnumerable<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
+        internal IEnumerator<RowContract> ExecuteContract<RowContract>(string Query) => ExecuteProjection(Query, RowContractInflater<RowContract>.Inflate);
     }
 
     /// <summary> Introduces initializer for the table fields. </summary>

@@ -28,9 +28,13 @@ namespace nORM
                 var SubRowColumns = RowContractInfo<SubRowContract>.Columns.Select(c => c.FieldName).ToArray();
                 var Query = new InsertQuery(Name, SubRowColumns, row_source.theQuery.NewSelect(SubRowColumns), Star.Instance);
                 var SQL = Query.Query.Build(Context.QueryContext);
-                return Context.ExecuteContract<RowContract>(SQL);
+                var res = Context.ExecuteContract<RowContract>(SQL);
+                while (res.MoveNext()) yield return res.Current;
             }
-            else return ((ITable<RowContract>)this).InsertRet(Source.AsEnumerable());
+            else {
+                var res = ((ITable<RowContract>)this).InsertRet(Source.AsEnumerable());
+                foreach (var r in res) yield return r;
+            }
         }
 
         [Obsolete("will be removed")]
@@ -113,7 +117,8 @@ namespace nORM
         IEnumerable<RowContract> ITable<RowContract>.InsertRet(IEnumerable Collection)
         {
             var INSERT = BuildInsertQuery(Collection, Star.Instance);
-            return Context.ExecuteContract<RowContract>(INSERT.Query.Build(Context.QueryContext));
+            var res = Context.ExecuteContract<RowContract>(INSERT.Query.Build(Context.QueryContext));
+            while (res.MoveNext()) yield return res.Current;
         }
 
         #endregion

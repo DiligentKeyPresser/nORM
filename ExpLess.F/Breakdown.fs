@@ -98,9 +98,9 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
                           | _ -> raise (new System.NotImplementedException("Someone forgot about " + e_binary.NodeType.ToString() + " binary operator."))
             
             match e_binary.Conversion, e_binary.Method, e_binary.IsLifted, e_binary.IsLiftedToNull with
-            | null, null, false, false 
-            | null, _, false, false when e_binary.Left.Type = typeof<Guid> && e_binary.Right.Type = typeof<Guid> 
-                           -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+            | null, null, false, false                                                                           -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+            | null, _, false, false when e_binary.Left.Type = typeof<Guid> && e_binary.Right.Type = typeof<Guid> -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+                           
             | _ -> Unsupported "this kind of binary operator is not implemented yet" 
       
     | ExpressionType.Power | ExpressionType.AddChecked | ExpressionType.MultiplyChecked | ExpressionType.SubtractChecked ->

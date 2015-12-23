@@ -123,10 +123,10 @@ namespace MakeSQL
                     case ExpressionType.LessThan: return MakeBinary(Left, " < ", Right);
                     case ExpressionType.LessThanOrEqual: return MakeBinary(Left, " <= ", Right);
                     case ExpressionType.Add: return MakeBinary(Left, " + ", Right);
+                    case ExpressionType.AndAlso: return MakeBinary(Left, " AND ", Right);
 
                     case ExpressionType.AddChecked:
                     case ExpressionType.And:
-                    case ExpressionType.AndAlso:
                     case ExpressionType.ArrayLength:
                     case ExpressionType.ArrayIndex:
                     case ExpressionType.Call:

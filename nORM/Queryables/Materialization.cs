@@ -7,19 +7,18 @@ namespace nORM
 {
     partial class RowSource<RowContract>
     {
-#warning IEnumerator would be better
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private IEnumerable<RowContract> ExecuteInstant() => Context.ExecuteContract<RowContract>(theQuery.Query.Build(Context.QueryContext));
+        private IEnumerator<RowContract> ExecuteInstant() => Context.ExecuteContract<RowContract>(theQuery.Query.Build(Context.QueryContext));
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private IEnumerable<RowContract> ExecuteDeferred() {
             var data = ExecuteInstant();
-            foreach (var row in data) yield return row;
+            while (data.MoveNext()) yield return data.Current;
         }
 
         #region interface implementation
-        public IEnumerator<RowContract> GetEnumerator() => ExecuteInstant().GetEnumerator();
-        IEnumerator IEnumerable.GetEnumerator() => ExecuteInstant().GetEnumerator();
+        public IEnumerator<RowContract> GetEnumerator() => ExecuteInstant();
+        IEnumerator IEnumerable.GetEnumerator() => ExecuteInstant();
         #endregion
 
         /// <summary>
