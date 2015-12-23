@@ -86,7 +86,9 @@ let internal categorize (E : Expression) =
                           | _ -> raise (new System.NotImplementedException("Someone forgot about " + e_binary.NodeType.ToString() + " binary operator."))
             
             match e_binary.Conversion, e_binary.Method, e_binary.IsLifted, e_binary.IsLiftedToNull with
-            | null, null, false, false -> Binary (e_binary.Left, e_binary.Right, op_kind)
+            | null, null, false, false 
+            | null, _, false, false when e_binary.Left.Type = typeof<Guid> && e_binary.Right.Type = typeof<Guid> 
+                           -> Binary (e_binary.Left, e_binary.Right, op_kind)
             | _ -> Unsupported "this kind of binary operator is not implemented yet" 
       
     | ExpressionType.Power | ExpressionType.AddChecked | ExpressionType.MultiplyChecked | ExpressionType.SubtractChecked ->

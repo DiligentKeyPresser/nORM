@@ -36,7 +36,7 @@ namespace MakeSQL
             }
             if (Value.GetType() == typeof(bool))
             {
-                yield return (bool)Value ? "1 = 1" : "1 = 0";
+                yield return (bool)Value ? "(1 = 1)" : "(1 = 0)";
                 yield break;
             }
             if (Value.GetType() == typeof(string))
@@ -44,6 +44,13 @@ namespace MakeSQL
                 yield return "'";
 #warning escape the string!!!!
                 yield return Value as string;
+                yield return "'";
+                yield break;
+            }
+            if (Value.GetType() == typeof(Guid))
+            {
+                yield return "'";
+                yield return ((Guid)Value).ToString("D");
                 yield return "'";
                 yield break;
             }
@@ -82,7 +89,12 @@ namespace MakeSQL
             if (e_member != null)
             {
                 var RowPropertyAccess = e_member.Expression == Row;
-                if (RowPropertyAccess) return new string[] { FieldResolver(e_member.Member).NamedColumnDefinion.Build(this) };
+                if (RowPropertyAccess) {
+                    var FieldName = FieldResolver(e_member.Member).NamedColumnDefinion.Build(this);
+                    if (e_member.Type == typeof(bool))
+                        return new string[] { "(", FieldName, " = 1)" }; 
+                    else return new string[] { FieldName };
+                }
 
 #warning add debug output
                 return null;
