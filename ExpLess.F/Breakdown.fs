@@ -109,8 +109,19 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
     // Lambda parameter or constant value access
     | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
                                      match e_member.Expression.NodeType with
-                                     | ExpressionType.Parameter -> Param (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
-                                     | ExpressionType.Constant  -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
+                                     | ExpressionType.Parameter    -> Param (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
+                                     | ExpressionType.Constant     -> match e_member.Member with
+                                                                      | :? PropertyInfo as prop  -> Constant (prop.GetValue((e_member.Expression :?> ConstantExpression).Value), PaItself) 
+                                                                      | :? FieldInfo    as field -> Constant (field.GetValue((e_member.Expression :?> ConstantExpression).Value), PaItself) 
+                                                                      | _ -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
+                                     | ExpressionType.MemberAccess -> let mem = discriminate e_member.Expression
+                                                                      match mem with
+                                                                      | Constant (value, PaItself) -> 
+                                                                            match e_member.Member with
+                                                                            | :? PropertyInfo as prop  -> Constant (prop.GetValue(value), PaItself) 
+                                                                            | :? FieldInfo    as field -> Constant (field.GetValue(value), PaItself) 
+                                                                            | _ -> Constant (value, PaMember e_member.Member)
+                                                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
                                      | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
     // Conversion operations
