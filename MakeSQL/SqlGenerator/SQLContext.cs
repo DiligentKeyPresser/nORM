@@ -29,10 +29,20 @@ namespace MakeSQL
 
         internal virtual IEnumerator<string> EscapeLiteral(object Value)
         {
-            if (Value.GetType() == typeof(short) || Value.GetType() == typeof(int))
+            if (Value.GetType() == typeof(short) || Value.GetType() == typeof(int) || Value.GetType() == typeof(byte))
             {
                 yield return Value.ToString();
                 yield break; 
+            }
+            if (Value.GetType() == typeof(float))
+            {
+                yield return ((float)Value).ToString("E");
+                yield break;
+            }
+            if (Value.GetType() == typeof(double))
+            {
+                yield return ((double)Value).ToString("E");
+                yield break;
             }
             if (Value.GetType() == typeof(bool))
             {
