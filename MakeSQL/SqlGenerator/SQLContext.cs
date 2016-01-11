@@ -7,6 +7,8 @@ namespace MakeSQL
 {
     public abstract class SQLContext
     {
+        private static readonly IFormatProvider Formatter = System.Globalization.CultureInfo.InvariantCulture;
+
         internal SQLContext() { }
 
         internal virtual string GetFunctionName(Function Function)
@@ -36,12 +38,12 @@ namespace MakeSQL
             }
             if (Value.GetType() == typeof(float))
             {
-                yield return ((float)Value).ToString("E");
+                yield return ((float)Value).ToString("E", Formatter);
                 yield break;
             }
             if (Value.GetType() == typeof(double))
             {
-                yield return ((double)Value).ToString("E");
+                yield return ((double)Value).ToString("E", Formatter);
                 yield break;
             }
             if (Value.GetType() == typeof(bool))
