@@ -98,18 +98,41 @@ let rec internal discriminate (E : Expression) : ExpressionNode =
                           | _ -> raise (new System.NotImplementedException("Someone forgot about " + e_binary.NodeType.ToString() + " binary operator."))
             
             match e_binary.Conversion, e_binary.Method, e_binary.IsLifted, e_binary.IsLiftedToNull with
-            | null, null, false, false -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+            | null, null, false, false                                                                           -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+            | null, _, false, false when e_binary.Left.Type = typeof<Guid> && e_binary.Right.Type = typeof<Guid> -> Binary (discriminate e_binary.Left, op_kind, discriminate e_binary.Right)
+                           
             | _ -> Unsupported "this kind of binary operator is not implemented yet" 
       
     | ExpressionType.Power | ExpressionType.AddChecked | ExpressionType.MultiplyChecked | ExpressionType.SubtractChecked ->
             Unsupported ("this binary operator (" + E.NodeType.ToString() + ") is not implemented yet")
     
     // Lambda parameter or constant value access
-    | ExpressionType.MemberAccess -> let e_member = E :?> MemberExpression
-                                     match e_member.Expression.NodeType with
-                                     | ExpressionType.Parameter -> Param (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
-                                     | ExpressionType.Constant  -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
-                                     | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
+    | ExpressionType.MemberAccess -> 
+            let e_member = E :?> MemberExpression
+
+            // static member access
+            if e_member.Expression = null then  
+                match e_member.Member with
+                | :? PropertyInfo as prop  -> Constant (prop.GetValue(null), PaItself) 
+                | :? FieldInfo    as field -> Constant (field.GetValue(null), PaItself) 
+                | _ -> Constant (null, PaMember e_member.Member)
+
+            // nonstatic member access
+            else match e_member.Expression.NodeType with 
+                 | ExpressionType.Parameter    -> Param (e_member.Expression :?> ParameterExpression, PaMember e_member.Member)
+                 | ExpressionType.Constant     -> match e_member.Member with
+                                                  | :? PropertyInfo as prop  -> Constant (prop.GetValue((e_member.Expression :?> ConstantExpression).Value), PaItself) 
+                                                  | :? FieldInfo    as field -> Constant (field.GetValue((e_member.Expression :?> ConstantExpression).Value), PaItself) 
+                                                  | _ -> Constant ((e_member.Expression :?> ConstantExpression).Value, PaMember e_member.Member)
+                 | ExpressionType.MemberAccess -> let mem = discriminate e_member.Expression
+                                                  match mem with
+                                                  | Constant (value, PaItself) -> 
+                                                        match e_member.Member with
+                                                        | :? PropertyInfo as prop  -> Constant (prop.GetValue(value), PaItself) 
+                                                        | :? FieldInfo    as field -> Constant (field.GetValue(value), PaItself) 
+                                                        | _ -> Constant (value, PaMember e_member.Member)
+                                                  | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
+                  | _ -> Unsupported ("Member access for '" + e_member.Expression.NodeType.ToString() + "' expression is not implemented yet")
 
     // Conversion operations
     | ExpressionType.Convert        -> let e_unary = E :?> UnaryExpression
