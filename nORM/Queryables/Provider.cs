@@ -41,14 +41,22 @@ namespace nORM
             // we have to look into expression types.
             var expression_definions = ExtractExpressionArguments(Arguments).ToArray();
 
-            return (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
-                    where method.Name == Name
-                    let method_args_actual = method.GetParameters().Select(p => p.ParameterType).ToArray()
-                    let method_args_generic = method_args_actual.Select(p => p.GetGenericTypeDefinition())
-                    where method_args_generic.SequenceEqual(most_generic_definions)
-                    let local_expression_definions = ExtractExpressionArguments(method_args_actual)
+            var Similar = (from method in TypeOf.Queryable.GetMethods(BindingFlags.Static | BindingFlags.Public)
+                           where method.Name == Name
+                           let method_args_actual = method.GetParameters().Select(p => p.ParameterType).ToArray()
+                           let method_args_generic = method_args_actual.Select(p => p.GetGenericTypeDefinition())
+                           where method_args_generic.SequenceEqual(most_generic_definions)
+                           select new
+                           {
+                               m = method,
+                               a = method_args_actual
+                           }).ToArray();
+            if (Similar.Length == 1) return Similar.Single().m;
+
+            return (from method in Similar
+                    let local_expression_definions = ExtractExpressionArguments(method.a)
                     where local_expression_definions.SequenceEqual(expression_definions)
-                    select method).Single();
+                    select method.m).Single();
         }
 
         protected static readonly int SimpleCount = FindExtension("Count", TypeOf.IQueryable_generic).MetadataToken;
@@ -59,7 +67,9 @@ namespace nORM
         protected static readonly int SimpleAny = FindExtension("Any", TypeOf.IQueryable_generic).MetadataToken;
         protected static readonly int PredicatedAny = FindExtension("Any", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
         protected static readonly int PredicatedAll = FindExtension("All", TypeOf.IQueryable_generic, typeof(Expression<Func<object, bool>>)).MetadataToken;
+        protected static readonly int SimpleJoin = FindExtension("Join", TypeOf.IQueryable_generic, TypeOf.IEnumerable_generic, TypeOf.Expression_generic, TypeOf.Expression_generic, TypeOf.Expression_generic).MetadataToken;
 
+#warning public static IQueryable<TResult> Join<TOuter, TInner, TKey, TResult>(this IQueryable<TOuter> outer, IEnumerable<TInner> inner, Expression<Func<TOuter, TKey>> outerKeySelector, Expression<Func<TInner, TKey>> innerKeySelector, Expression<Func<TOuter, TInner, TResult>> resultSelector, IEqualityComparer<TKey> comparer);
 #warning protected static readonly int IndexedWhereWhere = FindExtension("Where", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, bool>>)).MetadataToken;
 #warning protected static readonly int SimpleSelect = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, object>>)).MetadataToken;
 #warning protected static readonly int SelectIndexed = FindExtension("Select", TypeOf.IQueryable_generic, typeof(Expression<Func<object, int, object>>)).MetadataToken;
@@ -130,6 +140,11 @@ namespace nORM
                 else return new_query;
             }
             */
+
+            if (MethodToken == SimpleJoin)
+            {
+
+            }
 
             failed_to_translate:
             // попадаем сюда если пришедший метод не транслируется в SQL

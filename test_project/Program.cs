@@ -51,10 +51,13 @@ namespace test_project
 
         static void Main(string[] args)
         {
-            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("server", "normtest", "normuser", "normpass"));
+            var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-            Console.WriteLine(CopyDatabase.Table1.Where(r => r.ID > 2 & r.Count < 10000).Count());
+
+
+            var r = CopyDatabase.Table1.Join(CopyDatabase.Table2, o => o.ID, i => i.ID, (o, i) => new { o, i }).ToArray();
+
 
             Console.ReadKey();
         }
