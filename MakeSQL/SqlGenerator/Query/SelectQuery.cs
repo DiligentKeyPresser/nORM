@@ -5,7 +5,51 @@ namespace MakeSQL
 {
     public sealed class SelectQuery : IQuery, IInsertSource
     {
-        private ISelectSource source;
+        private sealed class JoinClause
+        {
+            public enum Type
+            {
+                INNER,
+           //     LEFT,
+           //     RIGHT,
+           //     CROSS
+            }
+
+            public Type JoinType { get; }
+
+            public ISelectSource Source { get; }
+            public string OnClause { get; }
+            public LocalToken Alias { get; }
+
+            private JoinClause()
+            {
+                Alias = new LocalToken();
+            }
+
+            public JoinClause(Type JoinType, ISelectSource Source, string OnClause)
+                : this()
+            {
+                this.Source = Source;
+                this.OnClause = OnClause;
+                this.JoinType = JoinType;
+            }
+        }
+
+        /// <summary> Where to select from. </summary>
+        private readonly ISelectSource source;
+
+#warning please, notice:
+        // First: source_token should normally be used under next conditions only:
+        //        * join
+        //        * subquery
+        //
+        // Second: in case of subquery source_token conflicts with alias from source; 
+        //         this gonna be a big issue.
+
+        private readonly LocalToken source_token;
+
+        private JoinClause[] join;
+
         private IColumnDefinion[] fields;
 #warning string???
         private string[] where;
@@ -24,12 +68,13 @@ namespace MakeSQL
         {
             source = Source;
             fields = Fields;
+
+#warning take from source if tokenized
+            source_token = new LocalToken();
         }
 
-        /// <summary>
-        /// Creates a copy of the given query
-        /// </summary>
-        public SelectQuery Clone() => new SelectQuery(source, fields) { where = where, top = top };
+        /// <summary> Creates a copy of the given query. </summary>
+        public SelectQuery Clone() => new SelectQuery(source, fields) { where = where, top = top, join = join };
 
         /// <summary>
         /// Creates a SELECT query (based on the given one) with different columns 
@@ -69,6 +114,19 @@ namespace MakeSQL
             }
         }
 
+        public SelectQuery InnerJoin(ISelectSource Source, string Condition)
+        {
+            var clone = Clone();
+
+            var joinLength = clone.join.Length;
+            var new_join = new JoinClause[joinLength + 1];
+            if (joinLength > 0) Array.Copy(clone.join, new_join, joinLength);
+            new_join[joinLength] = new JoinClause(JoinClause.Type.INNER, Source, Condition);
+
+            clone.join = new_join;
+            return clone;
+        }
+
         public SelectQuery Top(int count)
         {
             if (top.HasValue && top < count) return this;
@@ -90,6 +148,11 @@ namespace MakeSQL
 
         private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
+#warning implement evaluation
+            bool SourceTokenIsUsed = true;
+
+            var TokenBag = SourceTokenIsUsed ? new LocalTokenizationContext() : null;
+
             yield return "SELECT ";
             if (top.HasValue)
             {
@@ -102,6 +165,12 @@ namespace MakeSQL
 #endif
             for (int i = 0; i < fields.Length; i++)
             {
+                if (SourceTokenIsUsed)
+                {
+                    yield return TokenBag[source_token];
+                    yield return ".";
+                }
+
                 var field = fields[i].NamedColumnDefinion.Compile(LanguageContext);
                 while (field.MoveNext()) yield return field.Current;                  
                 if (i < fields.Length - 1) yield return ", ";
@@ -109,18 +178,26 @@ namespace MakeSQL
 #if DEBUG
             yield return "\r\n";
 #endif
-            yield return " FROM ";
+            {// FROM clause
+                yield return " FROM ";
 #if DEBUG
-            yield return "\r\n   ";
+                yield return "\r\n   ";
 #endif
-            var From = source.SourceDefinion.Compile(LanguageContext);
-            while (From.MoveNext())
-            {
-                var current = From.Current;
+                var From = source.SourceDefinion.Compile(LanguageContext);
+                while (From.MoveNext())
+                {
+                    var current = From.Current;
 #if DEBUG
-                current = current.Replace("\r\n", "\r\n   ");
+                    current = current.Replace("\r\n", "\r\n   ");
 #endif
-                yield return current;
+                    yield return current;
+                }
+
+                if (SourceTokenIsUsed)
+                {
+                    yield return " AS ";
+                    yield return TokenBag[source_token];
+                }
             }
 
             if (where?.Length > 0)

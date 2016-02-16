@@ -45,6 +45,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SqlGenerator\Elements\Values.cs" />
     <Compile Include="SqlGenerator\Identifiers\AllTheFields.cs" />
+    <Compile Include="SqlGenerator\Identifiers\LocalToken.cs" />
     <Compile Include="SqlGenerator\Identifiers\QualifiedIdentifier.cs" />
     <Compile Include="SqlGenerator\Elements\RenamedColumn.cs" />
     <Compile Include="SqlGenerator\Identifiers\SimpleIdentifier.cs" />

@@ -54,7 +54,7 @@ namespace test_project
             var CopyDatabase = Database<ITestDB>.Inflate(new SqlServerConnector("federalcom", "normtest", "normuser", "normpass"));
             CopyDatabase.BeforeCommandExecute += Console.WriteLine;
 
-
+          //  foreach (var r1 in from rr in CopyDatabase.Table1 where rr.Count > 0 select rr) Console.WriteLine(r1.Name);
 
             var r = CopyDatabase.Table1.Join(CopyDatabase.Table2, o => o.ID, i => i.ID, (o, i) => new { o, i }).ToArray();
 
