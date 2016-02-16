@@ -143,7 +143,30 @@ namespace nORM
 
             if (MethodToken == SimpleJoin)
             {
+                var TypeDeclaration = mc_expr.Method.GetGenericArguments();
 
+                var TOuter = TypeDeclaration[0];
+                var TInner = TypeDeclaration[1];
+                var TKey = TypeDeclaration[2];
+                var TResult = TypeDeclaration[3];
+
+                var ExpectedInnerType = typeof(RowSource<>).MakeGenericType(TInner);
+
+                var const_arg_1 = mc_expr.Arguments[1] as ConstantExpression;
+#warning add debug output
+                if (const_arg_1 == null) goto failed_to_translate;
+
+                var inner = const_arg_1.Value as RowSource;
+#warning add debug output
+                if (inner == null) goto failed_to_translate;
+#warning add debug output
+                if (!ExpectedInnerType.IsAssignableFrom(inner.GetType())) goto failed_to_translate;
+
+                var new_query = TargetObject.MakeJoin(inner, mc_expr.Arguments[2], mc_expr.Arguments[3]);
+
+#warning add debug output
+                if (new_query == null) goto failed_to_translate;
+                else return new_query as RowSource<TResultElement>;
             }
 
             failed_to_translate:

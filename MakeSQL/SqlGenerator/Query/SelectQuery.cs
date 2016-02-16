@@ -118,12 +118,18 @@ namespace MakeSQL
         {
             var clone = Clone();
 
-            var joinLength = clone.join.Length;
-            var new_join = new JoinClause[joinLength + 1];
-            if (joinLength > 0) Array.Copy(clone.join, new_join, joinLength);
-            new_join[joinLength] = new JoinClause(JoinClause.Type.INNER, Source, Condition);
+            var NewJoinClause = new JoinClause(JoinClause.Type.INNER, Source, Condition);
 
-            clone.join = new_join;
+            if (clone.join == null) clone.join = new JoinClause[] { NewJoinClause };
+            else
+            {
+                var joinLength = clone.join.Length;
+                var new_join = new JoinClause[joinLength + 1];
+                if (joinLength > 0) Array.Copy(clone.join, new_join, joinLength);
+                new_join[joinLength] = NewJoinClause;
+
+                clone.join = new_join;
+            }
             return clone;
         }
 
@@ -197,6 +203,31 @@ namespace MakeSQL
                 {
                     yield return " AS ";
                     yield return TokenBag[source_token];
+                }
+            }
+
+            if (join != null)
+            {// JOIN
+                foreach (var j in join)
+                {
+#if DEBUG
+                    yield return "\r\n";
+#endif
+                    switch (j.JoinType)
+                    {
+                        case JoinClause.Type.INNER:
+                            yield return " INNER JOIN ";
+                            break;
+                        default: throw new NotImplementedException("This join type has not been implemented yet.");
+                    }
+
+                    var From = source.SourceDefinion.Compile(LanguageContext);
+                    while (From.MoveNext()) yield return From.Current;
+
+                    yield return " AS ";
+                    yield return TokenBag[j.Alias];
+                    yield return " ON ";
+                    yield return j.OnClause;
                 }
             }
 

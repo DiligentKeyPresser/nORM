@@ -40,5 +40,30 @@ namespace nORM {
             var NewQuery = theQuery.Where(string.Concat(sql_predicate));
             return new RowSource<RowContract>(Context, NewQuery);
         }
+
+#warning looks wierd
+        internal RowSource<RowContract> MakeJoin(RowSource Another, Expression Key, Expression AnotherKey)
+        {
+            var sql_key = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(Key).Minimized.Expression, null, member =>
+            {
+#if DEBUG
+                if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+            });
+
+            var sql_another_key = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(AnotherKey).Minimized.Expression, null, member =>
+            {
+#if DEBUG
+                if (!Attribute.IsDefined(member, TypeOf.FieldAttribute)) throw new InvalidContractException(typeof(RowContract), "Field name is not defined.");
+#endif
+#warning не самый быстрый способ. не закешировать ли?
+                return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
+            });
+
+            var NewQuery = theQuery.InnerJoin(new SubQuery(Another.theQuery, "HOLLOW"), sql_key + " = " + sql_another_key);
+            return new RowSource<RowContract>(Context, NewQuery);
+        }
     }
 }

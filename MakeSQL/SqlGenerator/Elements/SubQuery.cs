@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace MakeSQL
 {
+#warning REMOVE
     public sealed class SubQuery : ISelectSource
     {
         private readonly SelectQuery baseQuery;
@@ -11,7 +12,7 @@ namespace MakeSQL
 
         public Builder SourceDefinion { get; }
 
-        internal SubQuery(SelectQuery Base, LocalIdentifier Alias)
+        public SubQuery(SelectQuery Base, LocalIdentifier Alias)
         {
             if (Alias == null) throw new ArgumentNullException("Name", "Subquery must have a name.");
             baseQuery = Base;
