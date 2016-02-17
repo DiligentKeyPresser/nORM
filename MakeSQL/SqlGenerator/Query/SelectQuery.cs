@@ -1,10 +1,55 @@
 ﻿using System;
 using System.Collections.Generic;
 
+#warning SelectQuery is ISelectSource now. Does this lead to further simplifications?
+
 namespace MakeSQL
 {
-    public sealed class SelectQuery : IQuery, IInsertSource
+    // IQuery        : a SelectQuery can be compiled directly to an SQL command.
+    // ISelectSource : any SELECT query can be directly used as a subquery.
+
+    public sealed class SelectQuery : IQuery, ISelectSource, IInsertSource
     {
+        #region ISelectSource
+
+        // This code allows SelectQuery to be an ISelectSource.
+        //
+        // We can check if the query fetches just all the rows from the source table
+        // and decide if we need use the underlying table directly instead
+        // of an actual subquery. 
+        //
+        // We can ignore a row ordering in a subquery, though.
+
+        /// <summary>
+        /// Chooses and returns an appropriate sql text builder for using as a subquery.
+        /// </summary>
+        Builder ISelectSource.SourceDefinion => IsDirectFetch() ? source.SourceDefinion : new Builder(CompileAsASubquery);
+
+        /// <summary>
+        /// Tells if the query retrieves all the rows from the source table without filtering/joining.
+        /// This function is supposed to ignore if row order is changed.
+        /// </summary>
+        private bool IsDirectFetch() => top == null && join == null && where == null;
+
+        /// <summary>
+        /// Turns a query into a subquery usable in FROM and JOIN clauses
+        /// </summary>
+        private IEnumerator<string> CompileAsASubquery(SQLContext LanguageContext)
+        {
+            yield return "(";
+#if DEBUG
+            yield return "\r\n ";
+#endif
+            var subquery = Compile(LanguageContext);
+            while (subquery.MoveNext()) yield return subquery.Current;
+#if DEBUG
+            yield return "\r\n";
+#endif
+            yield return ")";
+        }
+
+        #endregion
+
         private sealed class JoinClause
         {
             public enum Type
@@ -39,13 +84,9 @@ namespace MakeSQL
         private readonly ISelectSource source;
 
 #warning please, notice:
-        // First: source_token should normally be used under next conditions only:
+        // Source_token should normally be used under next conditions only:
         //        * join
         //        * subquery
-        //
-        // Second: in case of subquery source_token conflicts with alias from source; 
-        //         this gonna be a big issue.
-
         private readonly LocalToken source_token;
 
         private JoinClause[] join;
@@ -60,7 +101,6 @@ namespace MakeSQL
         public Builder Query => new Builder(Compile);
 
         public Builder InsertSourceDefinion => Query;
-
 #warning add overload with QualifiedIdentifier
         /// <summary> Creates a simple select query which can be extended or used as a subquery </summary>
         /// <param name="Source"> A qualified name of table/view or a subquery</param>
@@ -106,8 +146,7 @@ namespace MakeSQL
             }
             else
             {
-#warning constant name :(
-                var clone = new SelectQuery(this.name("T"), fields);
+                var clone = new SelectQuery(this, fields);
                 var new_where = new string[] { Clause };
                 clone.where = new_where;
                 return clone;
@@ -148,15 +187,16 @@ namespace MakeSQL
         {
 #warning constant names :(
             return new SelectQuery(
-                this.Top(1).NewSelect(1.literal().name("A")).name("T"), 
+                this.Top(1).NewSelect(1.literal().name("A")), 
                 new Cast(Function.Count.invoke(1.literal()), typeof(bool)).name("Result"));
         }
 
         private IEnumerator<string> Compile(SQLContext LanguageContext)
         {
-#warning implement evaluation
-            bool SourceTokenIsUsed = true;
+            // We must determine if 'AS' statements will be used.
+            bool SourceTokenIsUsed = join != null || source is SelectQuery;
 
+            // We create LocalTokenizationContext if we gonna use 'AS' only.
             var TokenBag = SourceTokenIsUsed ? new LocalTokenizationContext() : null;
 
             yield return "SELECT ";

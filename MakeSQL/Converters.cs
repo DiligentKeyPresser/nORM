@@ -17,9 +17,5 @@ namespace MakeSQL
 
         /// <summary> Gives the column a new name </summary>
         public static RenamedColumn name(this IUnnamedColumnDefinion Self, LocalIdentifier Alias) => new RenamedColumn(Self, Alias);
-
-        /// <summary> Gives the subquery a new name </summary>
-        public static SubQuery name(this SelectQuery Self, LocalIdentifier Alias) => new SubQuery(Self, Alias);
-
     }
 }

@@ -63,7 +63,7 @@ namespace nORM {
             });
 
 #warning loss of effficiency
-            var NewQuery = theQuery.InnerJoin(new SubQuery(Another.theQuery, "HOLLOW"), string.Concat(sql_key) + " = " + string.Concat(sql_another_key));
+            var NewQuery = theQuery.InnerJoin(Another.theQuery, string.Concat(sql_key) + " = " + string.Concat(sql_another_key));
             return new RowSource<TResult>(Context, NewQuery);
         }
     }
