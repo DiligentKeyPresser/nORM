@@ -162,7 +162,7 @@ namespace nORM
 #warning add debug output
                 if (!ExpectedInnerType.IsAssignableFrom(inner.GetType())) goto failed_to_translate;
 
-                var new_query = TargetObject.MakeJoin(inner, mc_expr.Arguments[2], mc_expr.Arguments[3]);
+                var new_query = TargetObject.MakeJoin<TResultElement>(inner, mc_expr.Arguments[2], mc_expr.Arguments[3]);
 
 #warning add debug output
                 if (new_query == null) goto failed_to_translate;

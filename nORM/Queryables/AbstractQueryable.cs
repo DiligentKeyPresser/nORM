@@ -42,7 +42,7 @@ namespace nORM {
         }
 
 #warning looks wierd
-        internal RowSource<RowContract> MakeJoin(RowSource Another, Expression Key, Expression AnotherKey)
+        internal RowSource<TResult> MakeJoin<TResult>(RowSource Another, Expression Key, Expression AnotherKey)
         {
             var sql_key = Context.QueryContext.BuildPredicate(new DiscriminatedExpression(Key).Minimized.Expression, null, member =>
             {
@@ -63,7 +63,7 @@ namespace nORM {
             });
 
             var NewQuery = theQuery.InnerJoin(new SubQuery(Another.theQuery, "HOLLOW"), sql_key + " = " + sql_another_key);
-            return new RowSource<RowContract>(Context, NewQuery);
+            return new RowSource<TResult>(Context, NewQuery);
         }
     }
 }
