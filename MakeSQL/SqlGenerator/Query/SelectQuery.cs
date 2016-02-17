@@ -221,7 +221,7 @@ namespace MakeSQL
                         default: throw new NotImplementedException("This join type has not been implemented yet.");
                     }
 
-                    var From = source.SourceDefinion.Compile(LanguageContext);
+                    var From = j.Source.SourceDefinion.Compile(LanguageContext);
                     while (From.MoveNext()) yield return From.Current;
 
                     yield return " AS ";

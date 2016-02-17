@@ -62,7 +62,8 @@ namespace nORM {
                 return (Attribute.GetCustomAttribute(member, TypeOf.FieldAttribute) as FieldAttribute).ColumnName;
             });
 
-            var NewQuery = theQuery.InnerJoin(new SubQuery(Another.theQuery, "HOLLOW"), sql_key + " = " + sql_another_key);
+#warning loss of effficiency
+            var NewQuery = theQuery.InnerJoin(new SubQuery(Another.theQuery, "HOLLOW"), string.Concat(sql_key) + " = " + string.Concat(sql_another_key));
             return new RowSource<TResult>(Context, NewQuery);
         }
     }
