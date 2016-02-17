@@ -7,6 +7,7 @@
         Builder SourceDefinion { get; }
     }
 
+#warning can this be replaced with ISelectSource?
     /// <summary> Anything to insert from </summary>
     public interface IInsertSource
     {

@@ -23,13 +23,13 @@ namespace MakeSQL
         /// <summary>
         /// Chooses and returns an appropriate sql text builder for using as a subquery.
         /// </summary>
-        Builder ISelectSource.SourceDefinion => IsDirectFetch() ? source.SourceDefinion : new Builder(CompileAsASubquery);
+        Builder ISelectSource.SourceDefinion => IsDirectFetch ? source.SourceDefinion : new Builder(CompileAsASubquery);
 
         /// <summary>
         /// Tells if the query retrieves all the rows from the source table without filtering/joining.
-        /// This function is supposed to ignore if row order is changed.
+        /// This property is supposed to ignore if row order is changed.
         /// </summary>
-        private bool IsDirectFetch() => top == null && join == null && where == null;
+        private bool IsDirectFetch => top == null && join == null && where == null;
 
         /// <summary>
         /// Turns a query into a subquery usable in FROM and JOIN clauses
@@ -63,7 +63,12 @@ namespace MakeSQL
             public Type JoinType { get; }
 
             public ISelectSource Source { get; }
-            public string OnClause { get; }
+
+#warning very poor approach
+            public string InnerKey { get; }
+#warning very poor approach
+            public string OuterKey { get; }
+
             public LocalToken Alias { get; }
 
             private JoinClause()
@@ -71,11 +76,13 @@ namespace MakeSQL
                 Alias = new LocalToken();
             }
 
-            public JoinClause(Type JoinType, ISelectSource Source, string OnClause)
+#warning very poor approach
+            public JoinClause(Type JoinType, ISelectSource Source, string OuterKey, string InnerKey)
                 : this()
             {
                 this.Source = Source;
-                this.OnClause = OnClause;
+                this.InnerKey = InnerKey;
+                this.OuterKey = OuterKey;
                 this.JoinType = JoinType;
             }
         }
@@ -153,11 +160,12 @@ namespace MakeSQL
             }
         }
 
-        public SelectQuery InnerJoin(ISelectSource Source, string Condition)
+#warning very poor approach
+        public SelectQuery InnerJoin(ISelectSource Source, string OuterKey, string InnerKey)
         {
             var clone = Clone();
 
-            var NewJoinClause = new JoinClause(JoinClause.Type.INNER, Source, Condition);
+            var NewJoinClause = new JoinClause(JoinClause.Type.INNER, Source, OuterKey, InnerKey);
 
             if (clone.join == null) clone.join = new JoinClause[] { NewJoinClause };
             else
@@ -267,7 +275,14 @@ namespace MakeSQL
                     yield return " AS ";
                     yield return TokenBag[j.Alias];
                     yield return " ON ";
-                    yield return j.OnClause;
+
+                    yield return TokenBag[source_token];
+                    yield return ".";
+                    yield return j.OuterKey;
+                    yield return " = ";
+                    yield return TokenBag[j.Alias];
+                    yield return ".";
+                    yield return j.InnerKey;
                 }
             }
 
